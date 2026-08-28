@@ -1,6 +1,7 @@
 import heroImg from '../assets/image.png'
 import catalogo from '../assets/catalogo.png'
 import whatsapp from '../assets/whatsapp.png'
+import JKStudioNailsOnlyLogo from '../assets/JKStudioNailsOnlyLogo.png'
 import { useNavigate } from 'react-router-dom'
 
 export default function Home() {
@@ -20,22 +21,23 @@ export default function Home() {
                 </svg>
                 
                 {/* Imagem de Capa Recortada com Gradiente Rose Gold chique */}
-                <div className='h-[180px] w-full relative bg-gradient-to-tr from-[#E6C2C1] via-[#D9A09E] to-[#C08A89]' style={{ clipPath: 'url(#minimal-01-mask)' }} />
+                <div className='h-[180px] w-full relative bg-gradient-to-tr from-[#E6C2C1]/70 via-[#D9A09E] to-[#E6C2C1]/90' style={{ clipPath: 'url(#minimal-01-mask)' }} />
                 
                 {/* Foto do Perfil (Logo Flora Haste) flutuando sobre a div de cima */}
-                <div className='absolute top-[90px] left-1/2 -translate-x-1/2 w-[130px] h-[130px] rounded-full border-4 border-white bg-white shadow-md overflow-hidden'>
-                    <img className='w-full h-full object-cover' src={heroImg} alt="logo Joyce Kayane Studio Nails" />
+                <div className='absolute top-[90px] left-1/2 -translate-x-1/2 w-[130px] h-[130px] rounded-full border-b-4 border-[#D9A09E]  bg-white shadow-md overflow-hidden'>
+                    <img className='w-full h-full object-cover' src={JKStudioNailsOnlyLogo} alt="logo Joyce Kayane Studio Nails" />
                 </div>
                 
                 {/* Título Oficial */}
-                <a className='mt-[70px] text-3xl text-[#C08A89] font-cinzel font-normal text-center select-none tracking-wide p-2'>
-                    JK Studio Nails
+                <a className='mt-[70px] text-3xl text-[#C08A89] font-cinzel font text-center select-none tracking-wide p-2'>
+                    JOYCE KAYANE
+                    <a className='text-sm block font-sans font-normal'>STUDIO NAILS</a>
                 </a>
             </header>
 
             {/* Redes Sociais (Instagram) */}
             <section className='w-full max-w-[480px] flex justify-center items-center py-4 bg-white'>
-                <a className='text-[#C08A89] hover:opacity-80 transition-opacity' href='https://www.instagram.com/florahastecg' rel='noopener noreferrer' target='_blank'>
+                <a className='text-[#C08A89] hover:opacity-80 transition-opacity' href='https://www.instagram.com/studionails_jk?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==' rel='noopener noreferrer' target='_blank'>
                     <svg width="24" height="24" viewBox="-4.76837158203125e-7,-4.76837158203125e-7,24,24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                         <path fill-rule="evenodd" clip-rule="evenodd" d="M16.8503 0H7.14973C3.20735 0 0 3.20735 0 7.14973V16.8503C0 20.7926 3.20735 24 7.14973 24H16.8503C20.7926 24 24 20.7926 24 16.8503V7.14973C24 3.20735 20.7926 0 16.8503 0ZM21.5856 16.8503C21.5856 19.4655 19.4655 21.5856 16.8503 21.5856H7.14973C4.5345 21.5856 2.4144 19.4655 2.4144 16.8503V7.14973C2.4144 4.53446 4.5345 2.4144 7.14973 2.4144H16.8503C19.4655 2.4144 21.5856 4.53446 21.5856 7.14973V16.8503ZM12.0002 5.79297C8.57754 5.79297 5.79297 8.57754 5.79297 12.0002C5.79297 15.4228 8.57754 18.2074 12.0002 18.2074C15.4229 18.2074 18.2075 15.4229 18.2075 12.0002C18.2075 8.57749 15.4229 5.79297 12.0002 5.79297ZM12.0002 15.7931C9.90547 15.7931 8.20737 14.095 8.20737 12.0002C8.20737 9.90547 9.90551 8.20737 12.0002 8.20737C14.095 8.20737 15.7931 9.90547 15.7931 12.0002C15.7931 14.0949 14.0949 15.7931 12.0002 15.7931ZM19.7067 5.83895C19.7067 6.66041 19.0408 7.32633 18.2193 7.32633C17.3979 7.32633 16.7319 6.66041 16.7319 5.83895C16.7319 5.01749 17.3979 4.35156 18.2193 4.35156C19.0408 4.35156 19.7067 5.01749 19.7067 5.83895Z" fill="currentColor"/>
                         <defs>
@@ -55,7 +57,7 @@ export default function Home() {
                 
                 {/* BOTÃO 1: WHATSAPP */}
                 <div className='w-full border-b border-[#C08A89]/20 hover:bg-black/[0.02] transition-colors duration-200'>
-                    <a className='flex flex-row items-center justify-between px-6 py-4' target='_blank' rel='noopener noreferrer' href='https://wa.me/5583996327988?text=Ol%C3%A1!%20Gostaria%20de%20fazer%20um%20pedido.'>
+                    <a className='flex flex-row items-center justify-between px-6 py-4' target='_blank' rel='noopener noreferrer' href='https://wa.me/5583982301526?text=Ol%C3%A1!%20Gostaria%20de%20fazer%20um%20pedido.'>
                         {/* Miniatura do ícone em tamanho 56px (w-14 h-14) */}
                         <img className='w-14 h-14 rounded-full object-cover shadow-sm' alt="Faça seu pedido thumbnail" src={whatsapp} data-cy="link-thumbnail" />
                         
@@ -73,7 +75,7 @@ export default function Home() {
                 <div className='w-full border-b border-[#C08A89]/20 hover:bg-black/[0.02] transition-colors duration-200'>
                     <button className='w-full flex flex-row items-center justify-between px-6 py-4' type='button' onClick={() => navigate('/Catalogo')} >
                         {/* Miniatura do ícone em tamanho 56px (w-14 h-14) */}
-                        <img className='w-14 h-14 rounded-full object-cover shadow-sm opacity-50' alt="Nosso catálogo thumbnail" src={catalogo} data-cy="link-thumbnail" />
+                        <img className='w-14 h-14 rounded-full shadow-sm opacity-50' alt="Nosso catálogo thumbnail" src={catalogo} data-cy="link-thumbnail" />
  
                         {/* Texto e seta alinhados por flexbox */}
                         <div className='flex-1 flex flex-row justify-between items-center ml-4'>

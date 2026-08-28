@@ -1,23 +1,110 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import hero from '../assets/hero.png'
-import heroImg from '../assets/image.png'
+import { supabase } from '../lib/supabase'
+import JKStudioNailsOnlyLogo from '../assets/JKStudioNailsOnlyLogo.png'
 import ListaCards from '../componentes/ListaCards'
+import BotaoCarrinho from './botaoCarrinho'
+import Carrinho from './Carrinho'
+import ModalServico from '../componentes/ModalServico'
 
 export default function Catalogo() {
     const navigate = useNavigate()
     const [activeProduct, setActiveProduct] = useState(null)
-    const [activeEncapsulamento, setActiveEncapsulamento] = useState(null)
-    const [activeBigCard, setActiveBigCard] = useState(null)
+    const [itensCarrinho, setItensCarrinho] = useState([])
+    const [categorias, setCategorias] = useState([])
+    const [loading, setLoading] = useState(true)
 
-    const servicosFicticios = [
-        { id: 1, nome: 'Manicure Simples', descricao: 'Limpeza, cuticulagem e esmaltação tradicional nas mãos.', valor: '35,00', img: hero },
-        { id: 2, nome: 'Alongamento em Gel', descricao: 'Extensão das unhas com técnica de gel moldado.', valor: '120,00', img: hero },
-        { id: 3, nome: 'Banho em Gel', descricao: 'Camada de gel sobre a unha natural para força e brilho.', valor: '70,00', img: hero }
-    ]
+    const [botao, setBotao] = useState(true)
+    const [carrinho, setCarrinho] = useState(null)
+
+    // Busca dados do Supabase na inicialização
+    useEffect(() => {
+        async function carregarCatalogo() {
+            try {
+                const { data, error } = await supabase
+                    .from('categorias')
+                    .select(`
+                        id,
+                        nome,
+                        escolha,
+                        servicos (
+                            id,
+                            nome,
+                            descricao,
+                            valor,
+                            img,
+                            tipo,
+                            aceita_adicionais
+                        )
+                    `)
+                
+                if (error) throw error
+
+                // Formata o valor dos serviços de numeric (ex: 120.00) para string com vírgula (ex: 120,00)
+                // para manter total compatibilidade com os componentes filhos existentes.
+                const categoriasFormatadas = (data || []).map(cat => ({
+                    ...cat,
+                    servicos: (cat.servicos || []).map(serv => ({
+                        ...serv,
+                        valor: parseFloat(serv.valor).toFixed(2).replace('.', ',')
+                    }))
+                }))
+
+                setCategorias(categoriasFormatadas)
+            } catch (error) {
+                console.error('Erro ao carregar catálogo do Supabase:', error)
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        carregarCatalogo()
+    }, [])
+
+    const adicionarAoCarrinho = (opcionaisSelecionados) => {
+        const opcionaisFiltrados = {};
+        Object.entries(opcionaisSelecionados).forEach(([id, qtd]) => {
+            if (qtd > 0) {
+                opcionaisFiltrados[id] = qtd;
+            }
+        });
+
+        const novoItem = {
+            idEscolha: Date.now(),
+            produto: activeProduct,
+            opcionais: opcionaisFiltrados
+        };
+
+        setItensCarrinho(prev => [...prev, novoItem]);
+    };
+
+    const car = () => setCarrinho(true)
+    const nocar = () => setCarrinho(false)
+
+    // Congela a tela de fundo (body) ao abrir o modal, destravando ao fechar
+    useEffect(() => {
+        if (activeProduct) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [activeProduct]);
+
+    if (loading) {
+        return (
+            <div className='w-full min-h-screen flex flex-col items-center justify-center bg-white gap-3'>
+                <div className='w-10 h-10 border-4 border-[#C08A89]/20 border-t-[#C08A89] rounded-full animate-spin'></div>
+                <p className='text-sm text-gray-400 font-semibold font-cinzel'>Carregando serviços...</p>
+            </div>
+        )
+    }
+
 
     return (
-        <div className='w-full min-h-screen flex flex-col items-center bg-white'>
+        <div className='w-full min-h-screen flex flex-col items-center bg-white animation-1s'>
             
             {/* O Cabeçalho */}
             <header className='w-full relative bg-white flex flex-col items-center pb-4'>
@@ -30,7 +117,8 @@ export default function Catalogo() {
                 </svg>
                 
                 {/* Imagem de Capa Recortada com Gradiente Rose Gold chique */}
-                <div className='h-[180px] w-full relative bg-gradient-to-tr from-[#E6C2C1] via-[#D9A09E] to-[#C08A89]' style={{ clipPath: 'url(#minimal-01-mask)' }} />
+                <div className='h-[120px] w-full relative bg-gradient-to-tr from-[#E6C2C1]/70 via-[#D9A09E] to-[#E6C2C1]/90' 
+                style={{ clipPath: 'url(#minimal-01-mask)' }} />
                 
                 {/* Botão Voltar Flutuante */}
                 <button 
@@ -41,73 +129,53 @@ export default function Catalogo() {
                 </button>
 
                 {/* Foto do Perfil */}
-                <div className='absolute top-[90px] left-1/2 -translate-x-1/2 w-[130px] h-[130px] rounded-full border-4 border-white bg-white shadow-md overflow-hidden'>
-                    <img className='w-full h-full object-cover' src={heroImg} alt="logo JK Studio Nails" />
+                <div className='absolute top-10 left-1/2 -translate-x-1/2 w-[130px] h-[130px] rounded-full border-b-4 border-[#D9A09E]  bg-white shadow-md overflow-hidden'>
+                    <img className='w-full h-full object-cover' src={JKStudioNailsOnlyLogo} alt="logo Joyce Kayane Studio Nails" />
                 </div>
                 
-                {/* Título Oficial */}
-                <a className='mt-[70px] text-3xl text-[#C08A89] font-cinzel font-normal text-center select-none tracking-wide p-2'>
-                    Catálogo
+                <a className='mt-[70px] text-3xl text-[#C08A89] font-cinzel font text-center select-none tracking-wide p-2 transition-all'>
+                    JOYCE KAYANE
+                    <a className='text-sm block font-sans font-normal'>STUDIO NAILS</a>
                 </a>
             </header>
 
             {/* Seção Principal: Lista/Carrossel de Serviços */}
-            <main className='w-full max-w-[480px] flex flex-col bg-white px-4 my-6'>
-                <p className='text-sm font-bold bg-white text-[#D9A09E] mb-2 px-3'>
-                    Serviços em Destaque</p>
-                <ListaCards 
-                    produtos={servicosFicticios} 
-                    opened={() => {setActiveBigCard(true); setActiveProduct(true); }} 
-                />
+            <main className='w-full max-w-[480px] flex flex-col items-center bg-white px-4 gap-6'>
+                <div className='border-t-1 border-[#FF8C00] w-60'></div>
+                
+                {categorias.filter(cat => cat.escolha).map((cat) => (
+                    <div key={cat.id} className='w-full flex flex-col bg-white pb-2 my-2 ring-1 ring-[#D9A09E]/70 rounded-xl overflow-hidden shadow-sm'>
+                        <a className='text-3xl text-white bg-[#D9A09E] font-cinzel font-normal text-center select-none tracking-wide p-2 border-b border-[#D9A09E]'>
+                            {cat.nome}
+                        </a>
+                        <ListaCards 
+                            produtos={cat.servicos} 
+                            opened={(produtoSelecionado) => { setActiveProduct(produtoSelecionado); }} 
+                        />
+                    </div>
+                ))}
             </main>
             
-            {activeBigCard &&
-            <section className="absolute inset-0 z-52 flex min-h-screen w-screen items-center justify-center bg-black/40 backdrop-blur-xs">
-                    <div className="min-h-100 min-w-70 rounded-3xl bg-gray-200 ring-1 ring-[#D9A09E]/50 shadow-2xl flex flex-col gap-2">
-                        {activeProduct &&
-                            <div>
-                                <div>
-                                    <div className='h-11 w-full flex justify-start items-end px-3 text-xl text-gray-200 font-bold'>
-                                        <a onClick={() => {setActiveProduct(activeProduct); setActiveBigCard(false); }} className='h-8 w-8 hover:scale-110 active:scale-100 flex justify-center items-center rounded-full bg-[#D9A09E]/20 text-[#C08A89] transition-all duration-100 shadow-gray-400 shadow-sm cursor-pointer'>X</a>
-                                    </div>
-                                    <div className='h-50 w-full flex justify-center'>
-                                        <div src='' className='w-50 h-full bg-gray-300 rounded-3xl shadow-lg flex items-center justify-center overflow-hidden'>
-                                            <img src={activeProduct.img || hero} alt={activeProduct.nome} className="h-full object-cover" />
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className='min-h-35 w-full flex flex-row items-start justify-center py-3'>
-                                    <div className='min-h-20 w-50 flex flex-col justify-between gap-1'>
-                                        <p className='min-h-6 text-black font-bold text-lg hover:text-black/70'>{activeProduct.nome}</p>
-                                        <div className='min-h-6 text-sm text-gray-600 hover:text-black/50'> 
-                                            {activeProduct.descricao}
-                                        </div>
-                                        <p className='h-6 text-lg text-[#C08A89] font-bold'>R$ {activeProduct.valor}</p>
-                                    </div>
-                                </div>
-                                <div className='h-15 w-full flex justify-center items-start'>
-                                    <div className='h-10 w-50 text-md transition-all duration-100 font-bold hover:scale-105 active:scale-100 flex justify-center items-center bg-[#C08A89] text-white rounded-lg shadow-md hover:shadow-lg cursor-pointer' onClick={() => {setActiveProduct(false); setActiveEncapsulamento(true); }}>
-                                    Escolher
-                                    </div>
-                                </div>
-                            </div>
-                        }
-                        {activeEncapsulamento &&
-                        <div>
-                            <div>
-                                <div className='h-11 w-full flex justify-start items-end px-3 text-xl text-gray-200 font-bold'>
-                                    <a onClick={() => {setActiveEncapsulamento(false); setActiveProduct(true)} } className='transition-all duration-100 h-8 w-8 flex justify-center items-center hover:scale-110 active:scale-100 rounded-full bg-[#D9A09E]/20 text-[#C08A89] shadow-gray-400 shadow-sm cursor-pointer'>❮</a>
-                                </div>
-                                <div className='h-50 w-full flex justify-center'>
-                                    <div src='' className='w-50 h-full bg-gray-300 rounded-3xl shadow-lg'  ></div>
-                                </div>
-                            </div>
-                        </div>
-                        }
-                    </div>
-                </section>
-            }
+            {activeProduct && (
+                <ModalServico 
+                    produto={activeProduct}
+                    opcionais={categorias.find(cat => !cat.escolha)?.servicos || []}
+                    onClose={() => setActiveProduct(null)}
+                    onConfirm={adicionarAoCarrinho}
+                />
+            )}
 
+            {itensCarrinho.length > 0 && !carrinho && botao &&
+                <BotaoCarrinho carr={car}/>
+            }
+            {carrinho &&
+                <Carrinho 
+                    carr={nocar} 
+                    itens={itensCarrinho} 
+                    setItens={setItensCarrinho}
+                    opcionaisData={categorias.find(cat => !cat.escolha)?.servicos || []}
+                />
+            }
 
 
             {/* Rodapé */}
@@ -118,5 +186,4 @@ export default function Catalogo() {
                 </div>
             </footer>
         </div>
-    )
-}
+)}
