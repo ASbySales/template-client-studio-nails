@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import hero from '../assets/hero.png'
+import heroImg from '../assets/image.png'
 import JKStudioNailsOnlyLogo from '../assets/JKStudioNailsOnlyLogo.png'
 import ListaCards from '../componentes/ListaCards'
 import BotaoCarrinho from './botaoCarrinho'
@@ -61,6 +62,8 @@ export default function Catalogo() {
         carregarCatalogo()
     }, [])
 
+    let i = 0
+
     const adicionarAoCarrinho = (opcionaisSelecionados) => {
         const opcionaisFiltrados = {};
         Object.entries(opcionaisSelecionados).forEach(([id, qtd]) => {
@@ -78,6 +81,9 @@ export default function Catalogo() {
         setItensCarrinho(prev => [...prev, novoItem]);
     };
 
+
+    const [quant, setQuant] = useState({})
+
     const car = () => setCarrinho(true)
     const nocar = () => setCarrinho(false)
 
@@ -93,6 +99,7 @@ export default function Catalogo() {
         };
     }, [activeProduct]);
 
+
     if (loading) {
         return (
             <div className='w-full min-h-screen flex flex-col items-center justify-center bg-white gap-3'>
@@ -101,7 +108,6 @@ export default function Catalogo() {
             </div>
         )
     }
-
 
     return (
         <div className='w-full min-h-screen flex flex-col items-center bg-white animation-1s'>
@@ -135,7 +141,8 @@ export default function Catalogo() {
                 
                 <a className='mt-[70px] text-3xl text-[#C08A89] font-cinzel font text-center select-none tracking-wide p-2 transition-all'>
                     JOYCE KAYANE
-                    <a className='text-sm block font-sans font-normal'>STUDIO NAILS</a>
+                    <a className='text-sm block font-sans font-normal'>
+                        STUDIO NAILS</a>
                 </a>
             </header>
 
