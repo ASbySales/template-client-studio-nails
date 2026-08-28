@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
 import hero from '../assets/hero.png'
 import heroImg from '../assets/image.png'
 import JKStudioNailsOnlyLogo from '../assets/JKStudioNailsOnlyLogo.png'
@@ -187,7 +188,7 @@ export default function Catalogo() {
 
             {/* Rodapé */}
             <footer className='w-full max-w-[480px] py-8 flex flex-col items-center justify-end bg-white gap-2'>
-                <hr className='w-16 border-t border-[npm #C08A89]/20'></hr>
+                <hr className='w-16 border-t border-[#C08A89]/20'></hr>
                 <div className='text-xs text-[#C08A89]/70 font-light'>
                     by <a className='hover:underline font-normal' target='_blank' rel='noopener noreferrer' href='https://asnamanga.vercel.app/'> As </a>
                 </div>
