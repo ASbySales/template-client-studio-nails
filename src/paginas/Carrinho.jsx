@@ -159,7 +159,8 @@ export default function Carrinho({ carr, itens, setItens, opcionaisData }) {
                 .insert({
                     nome_cliente: nome.trim(),
                     whatsapp_cliente: whatsapp,
-                    status: 'pendente'
+                    status: 'pendente',
+                    valor_total: calcularTotalGeral()
                 })
                 .select()
                 .single();
