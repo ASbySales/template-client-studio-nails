@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import hero from '../assets/hero.png'
-import heroImg from '../assets/image.png'
 import JKStudioNailsOnlyLogo from '../assets/JKStudioNailsOnlyLogo.png'
 import ListaCards from '../componentes/ListaCards'
 import BotaoCarrinho from './botaoCarrinho'
@@ -130,7 +128,7 @@ export default function Catalogo() {
                 {/* Botão Voltar Flutuante */}
                 <button 
                     onClick={() => navigate('/')} 
-                    className='fixed top-4 left-4 z-10 bg-white/80 hover:bg-white text-[#D9A09E] border border-[#C08A89]/30 rounded-full px-4 py-1.5 shadow-sm text-xs font-semibold font-cinzel transition-all hover:scale-105 active:scale-95 cursor-pointer'
+                    className='fixed bottom-6 left-4 z-10 bg-white/80 hover:bg-white text-[#D9A09E] border border-[#C08A89]/30 rounded-full px-4 py-1.5 shadow-sm text-sm font-semibold font-cinzel transition-all hover:scale-105 active:scale-95 cursor-pointer'
                 >
                     ❮ Voltar
                 </button>

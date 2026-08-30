@@ -244,9 +244,9 @@ export default function Carrinho({ carr, itens, setItens, opcionaisData }) {
                     >
                         {mostrarFormulario ? '❮' : '✕'}
                     </button>
-                    <h2 className='text-lg font-cinzel font-bold text-gray-800 tracking-wide'>
+                    <p className='text-lg font-cinzel font-bold text-gray-800 tracking-wide'>
                         {mostrarFormulario ? 'Identificação' : 'Seu Carrinho'}
-                    </h2>
+                    </p>
                     <div className='w-8 h-8'></div>
                 </div>
 

@@ -6,12 +6,11 @@ export default function BotaoCarrinho ({carr}) {
 
     return (
         <section>
-            <img onClick={carr} src={JKStudioNailsOnlyLogo} 
-            className={`
-                FORMA h-20 w-20 rounded-full
-                POSIÇÃO fixed z-50 bottom-20 right-3
-                PINTURA ring-1 ring-yellow-600
-                ANIMAÇÃO active:scale-110 transition-all duration-200`}/>
+            <button 
+            onClick={carr} 
+            className='fixed bottom-6 right-4 z-10 bg-white/80 hover:bg-white text-[#D9A09E] border border-[#C08A89]/30 rounded-full px-4 py-1.5 shadow-sm text-sm font-semibold font-cinzel transition-all hover:scale-105 active:scale-95 cursor-pointer'>
+                    Cesta 𐬽
+            </button>
         </section>
     )
 }

@@ -10,15 +10,15 @@ function DetalhesProduto({ produto, irPara, opcionais, onClose, onConfirm }) {
                 ✕</a>
             </div>
             <div className='h-50 w-full flex justify-center mt-2'>
-                <div className='w-50 h-full bg-white rounded-3xl shadow-lg flex items-center justify-center overflow-hidden'>
-                    <img src={produto.img || JKStudioNailsOnlyLogo} alt={produto.nome} className="h-full object-cover" />
+                <div className='hover:scale-103 transition-all duration-300 w-50 h-full bg-white rounded-3xl shadow-lg flex items-center justify-center overflow-hidden ring-2 ring-[#D9A09E]/30 border-2 border-[#D9A09E]/60'>
+                    <img src={produto.img || JKStudioNailsOnlyLogo} alt={produto.nome} className="h-full object-cover " />
                 </div>
             </div>
             <div className='min-h-35 w-full flex flex-row items-start justify-center py-3'>
                 <div className='min-h-20 w-50 flex flex-col justify-between gap-1'>
-                    <p className='text-black font-bold text-lg'>{produto.nome}</p>
-                    <div className='text-sm text-gray-600'>{produto.descricao}</div>
-                    <p className='text-lg text-[#C08A89] font-bold'>
+                    <p className='text-black font-bold text-lg hover:scale-103 transition-all duration-300'>{produto.nome}</p>
+                    <div className='text-xs text-gray-600 line-clamp-4 hover:scale-103 transition-all duration-300'>{produto.descricao}</div>
+                    <p className='text-lg text-[#C08A89] font-bold hover:scale-103 transition-all duration-300'>
                         R$ {produto.valor}</p>
                 </div>
             </div>
@@ -48,7 +48,7 @@ function OpcionaisProduto({ produto, opcionais, irPara, onClose, onConfirm }) {
     return (
         <div>
             <div className='h-11 w-full flex justify-start items-end px-3 text-xl text-gray-200 font-bold'>
-                <a onClick={() => irPara(() => DetalhesProduto)} className='h-8 w-8 flex justify-center items-center bg-[#D9A09E]/20 text-[#C08A89] rounded-full cursor-pointer'>
+                <a onClick={() => irPara(() => DetalhesProduto)} className='h-8 w-11 flex justify-center items-center bg-[#D9A09E]/20 text-[#C08A89] rounded-full cursor-pointer'>
                     ❮</a>
                 <div className='w-full flex justify-center mr-8'>
                     <p className='font-bold text-gray-800'>

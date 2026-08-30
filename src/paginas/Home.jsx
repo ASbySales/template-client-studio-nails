@@ -1,4 +1,3 @@
-import heroImg from '../assets/image.png'
 import catalogo from '../assets/catalogo.png'
 import whatsapp from '../assets/whatsapp.png'
 import JKStudioNailsOnlyLogo from '../assets/JKStudioNailsOnlyLogo.png'
