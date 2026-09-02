@@ -90,17 +90,39 @@ export default function Catalogo() {
     const car = () => setCarrinho(true)
     const nocar = () => setCarrinho(false)
 
-    // Congela a tela de fundo (body) ao abrir o modal, destravando ao fechar
+    // Congela a tela de fundo (body/html) ao abrir o modal de serviço ou o carrinho
     useEffect(() => {
-        if (activeProduct) {
+        const modalAberto = Boolean(activeProduct || carrinho);
+        if (modalAberto) {
+            const scrollY = window.scrollY;
+            document.body.style.position = 'fixed';
+            document.body.style.top = `-${scrollY}px`;
+            document.body.style.width = '100%';
             document.body.style.overflow = 'hidden';
+            document.documentElement.style.overflow = 'hidden';
         } else {
-            document.body.style.overflow = 'unset';
+            const scrollY = document.body.style.top;
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.width = '';
+            document.body.style.overflow = '';
+            document.documentElement.style.overflow = '';
+            if (scrollY) {
+                window.scrollTo(0, parseInt(scrollY || '0', 10) * -1);
+            }
         }
         return () => {
-            document.body.style.overflow = 'unset';
+            const scrollY = document.body.style.top;
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.width = '';
+            document.body.style.overflow = '';
+            document.documentElement.style.overflow = '';
+            if (scrollY) {
+                window.scrollTo(0, parseInt(scrollY || '0', 10) * -1);
+            }
         };
-    }, [activeProduct]);
+    }, [activeProduct, carrinho]);
 
 
     if (loading) {

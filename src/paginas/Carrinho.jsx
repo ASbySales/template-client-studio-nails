@@ -18,6 +18,43 @@ export default function Carrinho({ carr, itens, setItens, opcionaisData }) {
         setWhatsapp(whatsappSalvo)
     }, [])
 
+    // Trava completamente a rolagem e o touch do fundo enquanto o carrinho estiver aberto
+    useEffect(() => {
+        const scrollY = window.scrollY;
+        const body = document.body;
+        const html = document.documentElement;
+
+        const prevBodyPos = body.style.position;
+        const prevBodyTop = body.style.top;
+        const prevBodyWidth = body.style.width;
+        const prevBodyOverflow = body.style.overflow;
+        const prevHtmlOverflow = html.style.overflow;
+
+        body.style.position = 'fixed';
+        body.style.top = `-${scrollY}px`;
+        body.style.width = '100%';
+        body.style.overflow = 'hidden';
+        html.style.overflow = 'hidden';
+
+        const prevenirTouchFundo = (e) => {
+            if (!e.target.closest('.permitir-scroll')) {
+                e.preventDefault();
+            }
+        };
+
+        document.addEventListener('touchmove', prevenirTouchFundo, { passive: false });
+
+        return () => {
+            body.style.position = prevBodyPos;
+            body.style.top = prevBodyTop;
+            body.style.width = prevBodyWidth;
+            body.style.overflow = prevBodyOverflow;
+            html.style.overflow = prevHtmlOverflow;
+            document.removeEventListener('touchmove', prevenirTouchFundo);
+            window.scrollTo(0, scrollY);
+        };
+    }, []);
+
     // Função de cálculo de preço individual de cada serviço contratado
     const calcularPrecoItem = (item) => {
         let valorBase = parseFloat(item.produto.valor.replace(',', '.'));
@@ -241,8 +278,8 @@ export default function Carrinho({ carr, itens, setItens, opcionaisData }) {
     }
 
     return (
-        <section className='fixed inset-0 z-50 flex justify-center items-center bg-black/40 backdrop-blur-xs px-4'>
-            <div className='w-full max-w-[420px] max-h-[85vh] rounded-3xl flex flex-col bg-white ring-1 ring-[#D9A09E]/50 shadow-2xl p-4 overflow-hidden relative'>
+        <section className='fixed inset-0 z-50 flex justify-center items-center bg-black/40 backdrop-blur-xs px-4 overscroll-contain'>
+            <div className='w-full max-w-[420px] max-h-[85vh] rounded-3xl flex flex-col bg-white ring-1 ring-[#D9A09E]/50 shadow-2xl p-4 overflow-hidden relative overscroll-contain'>
                 
                 {enviando && (
                     <div className='absolute inset-0 z-55 flex flex-col items-center justify-center bg-white/95 gap-3'>
@@ -266,7 +303,7 @@ export default function Carrinho({ carr, itens, setItens, opcionaisData }) {
 
                 {!mostrarFormulario ? (
                     <>
-                        <div className='flex-1 overflow-y-auto no-scrollbar py-3 flex flex-col gap-4'>
+                        <div className='flex-1 overflow-y-auto overscroll-contain no-scrollbar py-3 flex flex-col gap-4 permitir-scroll'>
                             {itens.length === 0 ? (
                                 <div className='flex flex-col items-center justify-center py-10 gap-3'>
                                     <img src={JKStudioNailsOnlyLogo} className='w-16 h-16' />

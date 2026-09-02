@@ -40,7 +40,7 @@ function DetalhesProduto({ produto, irPara, opcionais, onClose, onConfirm }) {
                             <button 
                                 type="button"
                                 onClick={() => setQuantidade(prev => Math.max(1, prev - 1))}
-                                className='h-7 w-7 bg-gray-200 rounded-full flex justify-center items-center font-bold text-base cursor-pointer hover:bg-gray-300 active:scale-90 transition-all border-none'
+                                className='h-7 w-7 bg-gray-200 rounded-full pb-1 flex justify-center items-center font-bold text-base cursor-pointer hover:bg-gray-300 active:scale-90 transition-all border-none'
                             >
                                 -
                             </button>
@@ -48,7 +48,7 @@ function DetalhesProduto({ produto, irPara, opcionais, onClose, onConfirm }) {
                             <button 
                                 type="button"
                                 onClick={() => setQuantidade(prev => prev + 1)}
-                                className='h-7 w-7 bg-gray-200 rounded-full flex justify-center items-center font-bold text-base cursor-pointer hover:bg-gray-300 active:scale-90 transition-all border-none'
+                                className='h-7 w-7 bg-gray-200 rounded-full pb-1 flex justify-center items-center font-bold text-base cursor-pointer hover:bg-gray-300 active:scale-90 transition-all border-none'
                             >
                                 +
                             </button>
@@ -101,7 +101,7 @@ function OpcionaisProduto({ produto, opcionais, irPara, onClose, onConfirm }) {
                 </div>
             </div>
             
-            <div className='flex flex-col max-h-85 overflow-auto no-scrollbar mt-2 px-2'>
+            <div className='flex flex-col max-h-85 overflow-y-auto overscroll-contain no-scrollbar mt-2 px-2 permitir-scroll'>
                 <div className='flex flex-col items-center pt-2'>
                     {opcionais.map((item) => (
                         <div key={item.id} className='w-60 h-20 bg-gray-200 rounded-3xl my-1 p-2 flex flex-row justify-between items-center'>
@@ -156,11 +156,50 @@ function OpcionaisProduto({ produto, opcionais, irPara, onClose, onConfirm }) {
 export default function ModalServico({ produto, opcionais, onClose, onConfirm }) {
     const [EtapaAtiva, setEtapaAtiva] = useState(() => DetalhesProduto)
 
+    // Trava completamente a rolagem e o touch do fundo enquanto o modal estiver aberto
+    useEffect(() => {
+        if (!produto) return;
+
+        const scrollY = window.scrollY;
+        const body = document.body;
+        const html = document.documentElement;
+
+        const prevBodyPos = body.style.position;
+        const prevBodyTop = body.style.top;
+        const prevBodyWidth = body.style.width;
+        const prevBodyOverflow = body.style.overflow;
+        const prevHtmlOverflow = html.style.overflow;
+
+        body.style.position = 'fixed';
+        body.style.top = `-${scrollY}px`;
+        body.style.width = '100%';
+        body.style.overflow = 'hidden';
+        html.style.overflow = 'hidden';
+
+        const prevenirTouchFundo = (e) => {
+            if (!e.target.closest('.permitir-scroll')) {
+                e.preventDefault();
+            }
+        };
+
+        document.addEventListener('touchmove', prevenirTouchFundo, { passive: false });
+
+        return () => {
+            body.style.position = prevBodyPos;
+            body.style.top = prevBodyTop;
+            body.style.width = prevBodyWidth;
+            body.style.overflow = prevBodyOverflow;
+            html.style.overflow = prevHtmlOverflow;
+            document.removeEventListener('touchmove', prevenirTouchFundo);
+            window.scrollTo(0, scrollY);
+        };
+    }, [produto]);
+
     if (!produto) return null
 
     return (
-        <section className="fixed inset-0 z-52 min-h-screen w-screen flex items-center justify-center bg-black/40 backdrop-blur-xs">
-            <div className="min-h-100 min-w-70 rounded-3xl bg-white ring-1 ring-[#D9A09E]/50 shadow-2xl flex flex-col gap-2 p-2">
+        <section className="fixed inset-0 z-52 min-h-screen w-screen flex items-center justify-center bg-black/40 backdrop-blur-xs overscroll-contain">
+            <div className="min-h-100 min-w-70 rounded-3xl bg-white ring-1 ring-[#D9A09E]/50 shadow-2xl flex flex-col gap-2 p-2 overscroll-contain">
                 <EtapaAtiva 
                     produto={produto} 
                     opcionais={opcionais} 
