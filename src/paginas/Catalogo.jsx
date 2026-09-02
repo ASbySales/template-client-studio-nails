@@ -63,7 +63,10 @@ export default function Catalogo() {
 
     let i = 0
 
-    const adicionarAoCarrinho = (opcionaisSelecionados) => {
+    const adicionarAoCarrinho = (dados) => {
+        let opcionaisSelecionados = dados.opcionais || (typeof dados === 'object' && !dados.quantidadePrincipal ? dados : {});
+        let quantidadePrincipal = dados.quantidadePrincipal || 1;
+
         const opcionaisFiltrados = {};
         Object.entries(opcionaisSelecionados).forEach(([id, qtd]) => {
             if (qtd > 0) {
@@ -74,6 +77,7 @@ export default function Catalogo() {
         const novoItem = {
             idEscolha: Date.now(),
             produto: activeProduct,
+            quantidade: quantidadePrincipal,
             opcionais: opcionaisFiltrados
         };
 
@@ -171,7 +175,7 @@ export default function Catalogo() {
                 />
             )}
 
-            {itensCarrinho.length > 0 && !carrinho && botao &&
+            {!carrinho && botao &&
                 <BotaoCarrinho carr={car}/>
             }
             {carrinho &&

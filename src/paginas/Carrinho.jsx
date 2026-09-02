@@ -21,7 +21,8 @@ export default function Carrinho({ carr, itens, setItens, opcionaisData }) {
     // Função de cálculo de preço individual de cada serviço contratado
     const calcularPrecoItem = (item) => {
         let valorBase = parseFloat(item.produto.valor.replace(',', '.'));
-        let total = valorBase;
+        let qtdPrincipal = item.quantidade || 1;
+        let total = valorBase * qtdPrincipal;
         
         Object.entries(item.opcionais).forEach(([idStr, qtd]) => {
             const id = parseInt(idStr);
@@ -49,6 +50,19 @@ export default function Carrinho({ carr, itens, setItens, opcionaisData }) {
     // Remove um serviço completo do carrinho
     const removerItem = (idEscolha) => {
         setItens(prev => prev.filter(item => item.idEscolha !== idEscolha));
+    };
+
+    // Altera a quantidade de um serviço unitário principal no carrinho
+    const alterarQtdPrincipal = (idEscolha, direcao) => {
+        setItens(prev => prev.map(item => {
+            if (item.idEscolha !== idEscolha) return item;
+            const qtdAtual = item.quantidade || 1;
+            const novaQtd = direcao === 'mais' ? qtdAtual + 1 : Math.max(1, qtdAtual - 1);
+            return {
+                ...item,
+                quantidade: novaQtd
+            };
+        }));
     };
 
     // Altera a quantidade de um opcional dentro de um serviço no carrinho
@@ -174,7 +188,7 @@ export default function Carrinho({ carr, itens, setItens, opcionaisData }) {
                         solicitacao_id: solicitacao.id,
                         servico_id: item.produto.id,
                         parent_item_id: null,
-                        quantidade: 1
+                        quantidade: item.quantidade || 1
                     })
                     .select()
                     .single();
@@ -255,7 +269,7 @@ export default function Carrinho({ carr, itens, setItens, opcionaisData }) {
                         <div className='flex-1 overflow-y-auto no-scrollbar py-3 flex flex-col gap-4'>
                             {itens.length === 0 ? (
                                 <div className='flex flex-col items-center justify-center py-10 gap-3'>
-                                    <img src={JKStudioNailsOnlyLogo} className='w-16 h-16 opacity-30' />
+                                    <img src={JKStudioNailsOnlyLogo} className='w-16 h-16' />
                                     <p className='text-sm text-gray-400 font-semibold'>Seu carrinho está vazio</p>
                                 </div>
                             ) : (
@@ -273,9 +287,38 @@ export default function Carrinho({ carr, itens, setItens, opcionaisData }) {
                                             <div className='flex flex-col text-left'>
                                                 <span className='text-sm font-bold text-gray-800'>{item.produto.nome}</span>
                                                 <span className='text-[10px] text-gray-400'>{item.produto.descricao}</span>
-                                                <span className='text-xs font-bold text-[#C08A89] mt-0.5'>R$ {item.produto.valor}</span>
+                                                <span className='text-xs font-bold text-[#C08A89] mt-0.5'>
+                                                    R$ {item.produto.valor}
+                                                    {(item.produto.tipo === 'extra' || item.produto.tipo === 'substitutivo') && (
+                                                        <span className='text-[10px] text-gray-400 font-normal ml-1'>/ unid</span>
+                                                    )}
+                                                </span>
                                             </div>
                                         </div>
+
+                                        {/* Seletor de Quantidade do Serviço: EXIBIDO APENAS SE FOR UNITÁRIO */}
+                                        {(item.produto.tipo === 'extra' || item.produto.tipo === 'substitutivo') && (
+                                            <div className='mt-2 pt-2 border-t border-gray-200/60 flex justify-between items-center bg-white rounded-xl px-2.5 py-1.5 border border-gray-100'>
+                                                <span className='text-xs text-gray-700 font-bold'>Quantidade:</span>
+                                                <div className='flex items-center gap-2'>
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => alterarQtdPrincipal(item.idEscolha, 'menos')}
+                                                        className='h-6 w-6 bg-gray-200 rounded-full flex justify-center items-center font-bold text-xs cursor-pointer hover:bg-gray-300 active:scale-90 transition-all border-none'
+                                                    >
+                                                        -
+                                                    </button>
+                                                    <span className='font-bold text-xs w-4 text-center'>{item.quantidade || 1}</span>
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => alterarQtdPrincipal(item.idEscolha, 'mais')}
+                                                        className='h-6 w-6 bg-gray-200 rounded-full flex justify-center items-center font-bold text-xs cursor-pointer hover:bg-gray-300 active:scale-90 transition-all border-none'
+                                                    >
+                                                        +
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
 
                                         {Object.keys(item.opcionais).length > 0 && (
                                             <div className='mt-2 pt-2 border-t border-gray-200/60 flex flex-col gap-1.5'>

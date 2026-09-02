@@ -7,7 +7,7 @@ export default function Home() {
     const navigate = useNavigate()
 
     return(
-        <div className='w-full min-h-screen flex flex-col items-center justify-between bg-white'>
+        <div className='w-full min-h-screen flex flex-col items-center justify-start bg-white'>
             
             {/* O Cabeçalho (Contém a imagem recortada, a foto suspensa e o título Flora Haste em fluxo natural) */}
             <header className='w-full relative bg-white flex flex-col items-center pb-4'>
@@ -52,13 +52,13 @@ export default function Home() {
             </section>
 
             {/* Listagem de Links / Botões */}
-            <section className='w-full max-w-[480px] flex flex-col bg-white font-bold'>
+            <section className='w-full max-w-[480px] h-130 flex flex-col pt-35 bg-white font-bold'>
                 
                 {/* BOTÃO 1: WHATSAPP */}
                 <div className='w-full border-b border-[#C08A89]/20 hover:bg-black/[0.02] transition-colors duration-200'>
                     <a className='flex flex-row items-center justify-between px-6 py-4' target='_blank' rel='noopener noreferrer' href='https://wa.me/5583982301526?text=Ol%C3%A1!%20Gostaria%20de%20fazer%20um%20pedido.'>
                         {/* Miniatura do ícone em tamanho 56px (w-14 h-14) */}
-                        <img className='w-14 h-14 rounded-full object-cover shadow-sm' alt="Faça seu pedido thumbnail" src={whatsapp} data-cy="link-thumbnail" />
+                        <img className='w-14 h-14 rounded-full object-cover' alt="Faça seu pedido thumbnail" src={whatsapp} data-cy="link-thumbnail" />
                         
                         {/* Texto e seta alinhados por flexbox */}
                         <div className='flex-1 flex flex-row justify-between items-center ml-4'>
@@ -74,7 +74,7 @@ export default function Home() {
                 <div className='w-full border-b border-[#C08A89]/20 hover:bg-black/[0.02] transition-colors duration-200'>
                     <button className='w-full flex flex-row items-center justify-between px-6 py-4' type='button' onClick={() => navigate('/Catalogo')} >
                         {/* Miniatura do ícone em tamanho 56px (w-14 h-14) */}
-                        <img className='w-14 h-14 rounded-full shadow-sm opacity-50' alt="Nosso catálogo thumbnail" src={catalogo} data-cy="link-thumbnail" />
+                        <img className='w-14 h-14 rounded-full opacity-40' alt="Nosso catálogo thumbnail" src={catalogo} data-cy="link-thumbnail" />
  
                         {/* Texto e seta alinhados por flexbox */}
                         <div className='flex-1 flex flex-row justify-between items-center ml-4'>
