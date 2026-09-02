@@ -1,4 +1,5 @@
 import cesta from '../assets/cesta.png'
+import JKStudioNailsOnlyLogo from '../assets/JKStudioNailsOnlyLogo.png'
 import { useState } from 'react'
 
 export default function Card({produto, open}) {
@@ -17,7 +18,7 @@ export default function Card({produto, open}) {
             w-35 h-35 min-h-30 rounded-lg 
             overflow-hidden'>
                 {/* Imagem do Produto */}
-                <img className='w-full h-full object-cover' src={produto.img} alt={produto.nome} />
+                <img className='w-full h-full object-cover' src={produto.img || JKStudioNailsOnlyLogo} alt={produto.nome} />
             </div>
 
                 {/* Informações do Produto */}
