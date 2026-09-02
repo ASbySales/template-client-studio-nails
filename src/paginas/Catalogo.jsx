@@ -13,9 +13,7 @@ export default function Catalogo() {
     const [itensCarrinho, setItensCarrinho] = useState([])
     const [categorias, setCategorias] = useState([])
     const [loading, setLoading] = useState(true)
-
-    const [botao, setBotao] = useState(true)
-    const [carrinho, setCarrinho] = useState(null)
+    const [carrinho, setCarrinho] = useState(false)
 
     // Busca dados do Supabase na inicialização
     useEffect(() => {
@@ -40,8 +38,7 @@ export default function Catalogo() {
                 
                 if (error) throw error
 
-                // Formata o valor dos serviços de numeric (ex: 120.00) para string com vírgula (ex: 120,00)
-                // para manter total compatibilidade com os componentes filhos existentes.
+                // Formata o valor dos serviços para string com vírgula (ex: 120,00)
                 const categoriasFormatadas = (data || []).map(cat => ({
                     ...cat,
                     servicos: (cat.servicos || []).map(serv => ({
@@ -60,8 +57,6 @@ export default function Catalogo() {
 
         carregarCatalogo()
     }, [])
-
-    let i = 0
 
     const adicionarAoCarrinho = (dados) => {
         let opcionaisSelecionados = dados.opcionais || (typeof dados === 'object' && !dados.quantidadePrincipal ? dados : {});
@@ -83,9 +78,6 @@ export default function Catalogo() {
 
         setItensCarrinho(prev => [...prev, novoItem]);
     };
-
-
-    const [quant, setQuant] = useState({})
 
     const car = () => setCarrinho(true)
     const nocar = () => setCarrinho(false)
@@ -132,7 +124,6 @@ export default function Catalogo() {
             }
         };
     }, [activeProduct, carrinho]);
-
 
     if (loading) {
         return (
@@ -206,18 +197,18 @@ export default function Catalogo() {
                 />
             )}
 
-            {!carrinho && botao &&
+            {!carrinho && (
                 <BotaoCarrinho carr={car}/>
-            }
-            {carrinho &&
+            )}
+
+            {carrinho && (
                 <Carrinho 
                     carr={nocar} 
                     itens={itensCarrinho} 
                     setItens={setItensCarrinho}
                     opcionaisData={categorias.find(cat => !cat.escolha)?.servicos || []}
                 />
-            }
-
+            )}
 
             {/* Rodapé */}
             <footer className='w-full max-w-[480px] py-8 flex flex-col items-center justify-end bg-white gap-2'>
@@ -227,4 +218,5 @@ export default function Catalogo() {
                 </div>
             </footer>
         </div>
-)}
+    )
+}

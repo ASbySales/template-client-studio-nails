@@ -1,6 +1,4 @@
-import cesta from '../assets/cesta.png'
 import JKStudioNailsOnlyLogo from '../assets/JKStudioNailsOnlyLogo.png'
-import { useState } from 'react'
 
 export default function Card({produto, open}) {
     if (!produto) return null;
@@ -21,16 +19,14 @@ export default function Card({produto, open}) {
                 <img className='w-full h-full object-cover' src={produto.img || JKStudioNailsOnlyLogo} alt={produto.nome} />
             </div>
 
-                {/* Informações do Produto */}
+            {/* Informações do Produto */}
             <div className='text-start w-full max-h-15'>
-                
                 <h3 className='font-bold text-xs text-gray-600 line-clamp-3'>
                     {produto.nome}
                 </h3>
                 <h4 className='font-normal text-[8px] text-gray-400 line-clamp-3 leading-[12px]'>
                     {produto.descricao}
                 </h4>
-
             </div>
         </article>
     )
