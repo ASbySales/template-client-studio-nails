@@ -156,45 +156,6 @@ function OpcionaisProduto({ produto, opcionais, irPara, onClose, onConfirm }) {
 export default function ModalServico({ produto, opcionais, onClose, onConfirm }) {
     const [EtapaAtiva, setEtapaAtiva] = useState(() => DetalhesProduto)
 
-    // Trava completamente a rolagem e o touch do fundo enquanto o modal estiver aberto
-    useEffect(() => {
-        if (!produto) return;
-
-        const scrollY = window.scrollY;
-        const body = document.body;
-        const html = document.documentElement;
-
-        const prevBodyPos = body.style.position;
-        const prevBodyTop = body.style.top;
-        const prevBodyWidth = body.style.width;
-        const prevBodyOverflow = body.style.overflow;
-        const prevHtmlOverflow = html.style.overflow;
-
-        body.style.position = 'fixed';
-        body.style.top = `-${scrollY}px`;
-        body.style.width = '100%';
-        body.style.overflow = 'hidden';
-        html.style.overflow = 'hidden';
-
-        const prevenirTouchFundo = (e) => {
-            if (!e.target.closest('.permitir-scroll')) {
-                e.preventDefault();
-            }
-        };
-
-        document.addEventListener('touchmove', prevenirTouchFundo, { passive: false });
-
-        return () => {
-            body.style.position = prevBodyPos;
-            body.style.top = prevBodyTop;
-            body.style.width = prevBodyWidth;
-            body.style.overflow = prevBodyOverflow;
-            html.style.overflow = prevHtmlOverflow;
-            document.removeEventListener('touchmove', prevenirTouchFundo);
-            window.scrollTo(0, scrollY);
-        };
-    }, [produto]);
-
     if (!produto) return null
 
     return (

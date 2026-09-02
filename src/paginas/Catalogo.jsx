@@ -90,36 +90,45 @@ export default function Catalogo() {
     const car = () => setCarrinho(true)
     const nocar = () => setCarrinho(false)
 
-    // Congela a tela de fundo (body/html) ao abrir o modal de serviço ou o carrinho
+    // Congela a tela de fundo (body/html) ao abrir o modal de serviço ou o carrinho de forma limpa e segura
     useEffect(() => {
         const modalAberto = Boolean(activeProduct || carrinho);
         if (modalAberto) {
-            const scrollY = window.scrollY;
+            const scrollY = window.scrollY || window.pageYOffset || 0;
+            document.body.dataset.scrollY = String(scrollY);
             document.body.style.position = 'fixed';
             document.body.style.top = `-${scrollY}px`;
+            document.body.style.left = '0';
+            document.body.style.right = '0';
             document.body.style.width = '100%';
             document.body.style.overflow = 'hidden';
             document.documentElement.style.overflow = 'hidden';
         } else {
-            const scrollY = document.body.style.top;
+            const scrollY = document.body.dataset.scrollY;
             document.body.style.position = '';
             document.body.style.top = '';
+            document.body.style.left = '';
+            document.body.style.right = '';
             document.body.style.width = '';
             document.body.style.overflow = '';
             document.documentElement.style.overflow = '';
-            if (scrollY) {
-                window.scrollTo(0, parseInt(scrollY || '0', 10) * -1);
+            if (scrollY !== undefined && scrollY !== '') {
+                window.scrollTo(0, parseInt(scrollY, 10));
+                delete document.body.dataset.scrollY;
             }
         }
         return () => {
-            const scrollY = document.body.style.top;
+            const scrollY = document.body.dataset.scrollY;
             document.body.style.position = '';
             document.body.style.top = '';
+            document.body.style.left = '';
+            document.body.style.right = '';
             document.body.style.width = '';
             document.body.style.overflow = '';
             document.documentElement.style.overflow = '';
-            if (scrollY) {
-                window.scrollTo(0, parseInt(scrollY || '0', 10) * -1);
+            if (scrollY !== undefined && scrollY !== '') {
+                window.scrollTo(0, parseInt(scrollY, 10));
+                delete document.body.dataset.scrollY;
             }
         };
     }, [activeProduct, carrinho]);
