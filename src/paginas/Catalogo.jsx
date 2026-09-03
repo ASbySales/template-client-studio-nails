@@ -10,10 +10,26 @@ import ModalServico from '../componentes/ModalServico'
 export default function Catalogo() {
     const navigate = useNavigate()
     const [activeProduct, setActiveProduct] = useState(null)
-    const [itensCarrinho, setItensCarrinho] = useState([])
+    const [itensCarrinho, setItensCarrinho] = useState(() => {
+        try {
+            const salvo = localStorage.getItem('carrinho_itens');
+            return salvo ? JSON.parse(salvo) : [];
+        } catch {
+            return [];
+        }
+    })
     const [categorias, setCategorias] = useState([])
     const [loading, setLoading] = useState(true)
     const [carrinho, setCarrinho] = useState(false)
+
+    // Sincroniza o carrinho com o localStorage sempre que for alterado
+    useEffect(() => {
+        try {
+            localStorage.setItem('carrinho_itens', JSON.stringify(itensCarrinho));
+        } catch (e) {
+            console.error('Erro ao sincronizar carrinho no cache:', e);
+        }
+    }, [itensCarrinho]);
 
     // Busca dados do Supabase na inicialização
     useEffect(() => {
