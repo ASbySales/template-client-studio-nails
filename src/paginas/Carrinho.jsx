@@ -98,9 +98,16 @@ export default function Carrinho({ carr, itens, setItens, opcionaisData }) {
 
     // Reaproveita um agendamento anterior do histórico carregando-o de volta para o carrinho
     const reaproveitarAgendamento = (agendamentoAnterior) => {
-        if (!agendamentoAnterior.itensCompletos || agendamentoAnterior.itensCompletos.length === 0) return;
+        const listaItens = agendamentoAnterior.itensCompletos || agendamentoAnterior.itens;
+        if (!listaItens || !Array.isArray(listaItens) || listaItens.length === 0) return;
 
-        const itensClonados = agendamentoAnterior.itensCompletos.map((it, idx) => ({
+        const itensValidos = listaItens.filter(it => it && it.produto && it.produto.id);
+        if (itensValidos.length === 0) {
+            setErroEnvio('O formato deste agendamento antigo não pôde ser recuperado. Adicione os itens pelo catálogo.');
+            return;
+        }
+
+        const itensClonados = itensValidos.map((it, idx) => ({
             ...it,
             idEscolha: Date.now() + idx
         }));
@@ -171,25 +178,35 @@ export default function Carrinho({ carr, itens, setItens, opcionaisData }) {
 
             // Inserção dos Itens e Opcionais vinculados
             for (const item of itens) {
+                const servicoId = parseInt(item.produto?.id);
+                if (!servicoId || isNaN(servicoId)) {
+                    throw new Error(`Serviço "${item.produto?.nome || 'desconhecido'}" sem identificador válido.`);
+                }
+
                 const { data: itemPrincipal, error: errorItem } = await supabase
                     .from('itens_agendamento')
                     .insert([{
                         solicitacao_id: solicitacao.id,
-                        servico_id: item.produto.id,
+                        servico_id: servicoId,
                         parent_item_id: null,
-                        quantidade: item.quantidade || 1
+                        quantidade: Number(item.quantidade) || 1
                     }])
                     .select()
                     .single();
 
                 if (errorItem) throw errorItem;
 
-                const opcionaisParaInserir = Object.entries(item.opcionais || {}).map(([opcId, qtd]) => ({
-                    solicitacao_id: solicitacao.id,
-                    servico_id: parseInt(opcId),
-                    parent_item_id: itemPrincipal.id,
-                    quantidade: qtd
-                }));
+                const opcionaisParaInserir = Object.entries(item.opcionais || {})
+                    .filter(([opcId, qtd]) => {
+                        const idNum = parseInt(opcId);
+                        return !isNaN(idNum) && idNum > 0 && Number(qtd) > 0;
+                    })
+                    .map(([opcId, qtd]) => ({
+                        solicitacao_id: solicitacao.id,
+                        servico_id: parseInt(opcId),
+                        parent_item_id: itemPrincipal.id,
+                        quantidade: Number(qtd) || 1
+                    }));
 
                 if (opcionaisParaInserir.length > 0) {
                     const { error: errorOpc } = await supabase
@@ -233,7 +250,8 @@ export default function Carrinho({ carr, itens, setItens, opcionaisData }) {
 
         } catch (error) {
             console.error('Erro ao enviar agendamento para o Supabase:', error);
-            setErroEnvio('Ocorreu um erro ao processar o seu agendamento no servidor. Tente novamente.');
+            const msg = error.message || error.details || error.hint || 'Falha ao processar dados no servidor.';
+            setErroEnvio(`Erro ao agendar: ${msg}`);
         } finally {
             setEnviando(false);
         }
