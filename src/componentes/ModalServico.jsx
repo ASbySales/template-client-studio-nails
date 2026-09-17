@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import JKStudioNailsOnlyLogo from '../assets/JKStudioNailsOnlyLogo.png'
+import AlbertSalesLogo from '../assets/AlbertSalesLogo.png'
 
 // --- SUB-COMPONENTE 1: DETALHES DO SERVIÇO ---
 function DetalhesProduto({ produto, irPara, opcionais, onClose, onConfirm }) {
@@ -12,21 +12,21 @@ function DetalhesProduto({ produto, irPara, opcionais, onClose, onConfirm }) {
                 <button 
                     type="button"
                     onClick={onClose} 
-                    className='h-8 w-8 hover:scale-110 active:scale-100 flex justify-center items-center pb-0.5 rounded-full bg-[#D9A09E]/20 text-[#C08A89] cursor-pointer border-none'
+                    className='h-8 w-8 hover:scale-110 active:scale-100 flex justify-center items-center pb-0.5 rounded-full bg-[#C5A059]/20 text-[#C5A059] cursor-pointer border-none font-bold'
                 >
                     ✕
                 </button>
             </div>
             <div className='h-50 w-full flex justify-center mt-2'>
-                <div className='hover:scale-103 transition-all duration-300 w-50 h-full bg-white rounded-3xl shadow-lg flex items-center justify-center overflow-hidden ring-2 ring-[#D9A09E]/30 border-2 border-[#D9A09E]/60'>
-                    <img src={produto.img || JKStudioNailsOnlyLogo} alt={produto.nome} className="h-full object-cover" />
+                <div className='hover:scale-103 transition-all duration-300 w-50 h-full bg-white rounded-3xl shadow-lg flex items-center justify-center overflow-hidden ring-2 ring-[#C5A059]/30 border-2 border-[#C5A059]/60'>
+                    <img src={produto.img || AlbertSalesLogo} alt={produto.nome} className="h-full object-cover" />
                 </div>
             </div>
             <div className='min-h-35 w-full flex flex-col items-center justify-center py-3 px-2'>
                 <div className='w-full max-w-[240px] flex flex-col justify-between gap-1 text-left'>
                     <p className='text-black font-bold text-lg hover:scale-103 transition-all duration-300'>{produto.nome}</p>
                     <div className='text-xs text-gray-600 line-clamp-4 hover:scale-103 transition-all duration-300'>{produto.descricao}</div>
-                    <p className='text-lg text-[#C08A89] font-bold hover:scale-103 transition-all duration-300'>
+                    <p className='text-lg text-[#C5A059] font-bold hover:scale-103 transition-all duration-300'>
                         R$ {produto.valor}
                         {isUnitario && <span className='text-xs text-gray-400 font-normal ml-1'>/ unidade</span>}
                     </p>
@@ -71,7 +71,7 @@ function DetalhesProduto({ produto, irPara, opcionais, onClose, onConfirm }) {
                             irPara(() => OpcionaisProduto)
                         }
                     }}
-                    className='h-10 w-50 font-bold text-md bg-[#C08A89] text-white rounded-lg shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer border-none'
+                    className='h-10 w-50 font-bold text-md bg-[#C5A059] hover:bg-[#B88E3E] text-white rounded-xl shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer border-none'
                 >
                     {isUnitario || produto.aceita_adicionais === false ? 'Adicionar ao Carrinho' : 'Escolher'}
                 </button>
@@ -90,7 +90,7 @@ function OpcionaisProduto({ produto, opcionais, irPara, onClose, onConfirm }) {
                 <button 
                     type="button"
                     onClick={() => irPara(() => DetalhesProduto)} 
-                    className='h-8 w-11 flex justify-center items-center bg-[#D9A09E]/20 text-[#C08A89] rounded-full cursor-pointer border-none'
+                    className='h-8 w-11 flex justify-center items-center bg-[#C5A059]/20 text-[#C5A059] rounded-full cursor-pointer border-none'
                 >
                     ❮
                 </button>
@@ -104,12 +104,12 @@ function OpcionaisProduto({ produto, opcionais, irPara, onClose, onConfirm }) {
             <div className='flex flex-col max-h-85 overflow-y-auto overscroll-contain no-scrollbar mt-2 px-2 permitir-scroll'>
                 <div className='flex flex-col items-center pt-2'>
                     {opcionais.map((item) => (
-                        <div key={item.id} className='w-60 h-20 bg-gray-200 rounded-3xl my-1 p-2 flex flex-row justify-between items-center'>
+                        <div key={item.id} className='w-60 h-20 bg-gray-100 rounded-3xl my-1 p-2 flex flex-row justify-between items-center border border-gray-200/60'>
                             <div className='flex flex-row items-center gap-2'>
-                                <img src={item.img || JKStudioNailsOnlyLogo} className='w-10 h-10 bg-gray-100 rounded-2xl shadow-md object-cover' />
+                                <img src={item.img || AlbertSalesLogo} className='w-10 h-10 bg-white rounded-2xl shadow-xs object-cover' />
                                 <div className='flex flex-col text-left'>
-                                    <span className='text-xs text-gray-600 font-bold'>{item.nome}</span>
-                                    <span className='text-[10px] text-gray-500'>
+                                    <span className='text-xs text-gray-700 font-bold'>{item.nome}</span>
+                                    <span className='text-[10px] text-[#C5A059] font-semibold'>
                                         R$ {item.valor}
                                     </span>
                                 </div>
@@ -118,7 +118,7 @@ function OpcionaisProduto({ produto, opcionais, irPara, onClose, onConfirm }) {
                                 <button 
                                     type="button"
                                     onClick={() => setQuant(prev => ({ ...prev, [item.id]: Math.max(0, (prev[item.id] || 0) - 1) }))}
-                                    className='h-6 w-6 bg-gray-300 rounded-full flex justify-center items-center font-bold text-sm cursor-pointer border-none hover:bg-gray-400 active:scale-90 transition-all'
+                                    className='h-6 w-6 bg-gray-200 rounded-full flex justify-center items-center font-bold text-sm cursor-pointer border-none hover:bg-gray-300 active:scale-90 transition-all'
                                 >
                                     -
                                 </button>
@@ -126,7 +126,7 @@ function OpcionaisProduto({ produto, opcionais, irPara, onClose, onConfirm }) {
                                 <button 
                                     type="button"
                                     onClick={() => setQuant(prev => ({ ...prev, [item.id]: (prev[item.id] || 0) + 1 }))}
-                                    className='h-6 w-6 bg-gray-300 rounded-full flex justify-center items-center font-bold text-sm cursor-pointer border-none hover:bg-gray-400 active:scale-90 transition-all'
+                                    className='h-6 w-6 bg-gray-200 rounded-full flex justify-center items-center font-bold text-sm cursor-pointer border-none hover:bg-gray-300 active:scale-90 transition-all'
                                 >
                                     +
                                 </button>
@@ -143,7 +143,7 @@ function OpcionaisProduto({ produto, opcionais, irPara, onClose, onConfirm }) {
                         onConfirm({ quantidadePrincipal: 1, opcionais: quant })
                         onClose()
                     }}
-                    className='h-10 w-50 font-bold text-md bg-[#C08A89] text-white rounded-lg shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer border-none'
+                    className='h-10 w-50 font-bold text-md bg-[#C5A059] hover:bg-[#B88E3E] text-white rounded-xl shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer border-none'
                 >
                     Adicionar ao Carrinho
                 </button>
@@ -160,7 +160,7 @@ export default function ModalServico({ produto, opcionais, onClose, onConfirm })
 
     return (
         <section className="fixed inset-0 z-52 min-h-screen w-screen flex items-center justify-center bg-black/40 backdrop-blur-xs overscroll-contain">
-            <div className="min-h-100 min-w-70 rounded-3xl bg-white ring-1 ring-[#D9A09E]/50 shadow-2xl flex flex-col gap-2 p-2 overscroll-contain">
+            <div className="min-h-100 min-w-70 rounded-3xl bg-white ring-1 ring-[#C5A059]/50 shadow-2xl flex flex-col gap-2 p-2 overscroll-contain">
                 <EtapaAtiva 
                     produto={produto} 
                     opcionais={opcionais} 
