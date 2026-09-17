@@ -30,8 +30,8 @@
 
 ### 1. Clonar o repositório
 ```bash
-git clone https://github.com/AsBySales/studio-nails-cliente.git
-cd studio-nails-cliente
+git clone https://github.com/ASbySales/template-client-studio-nails.git
+cd template-client-studio-nails
 ```
 
 ### 2. Instalar dependências
