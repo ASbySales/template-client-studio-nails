@@ -166,10 +166,11 @@ export default function Carrinho({ carr, itens, setItens, opcionaisData }) {
             setEnviando(true);
 
             // Inserção da Solicitação Principal no Supabase
+            const tenantId = import.meta.env.VITE_TENANT_ID || 'demo';
             const { data: solicitacao, error: errorSol } = await supabase
                 .from('solicitacoes_agendamento')
                 .insert([{
-                    codigo_pedido: `#AG-${Math.floor(1000 + Math.random() * 9000)}`,
+                    tenant_id: tenantId,
                     nome_cliente: nome.trim(),
                     whatsapp_cliente: whatsapp,
                     valor_total: calcularTotalGeral(),

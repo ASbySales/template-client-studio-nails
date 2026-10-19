@@ -3,30 +3,33 @@ import AlbertSalesLogo from '../assets/AlbertSalesLogo.png'
 export default function Card({produto, open}) {
     if (!produto) return null;
     return (
-        <article onClick={() => open(produto)} 
-        className='ring-1 ring-[#C5A059]/40 
-        shrink-0 w-40 min-h-60 flex flex-col gap-2 items-center 
-        bg-gray-100/90 rounded-xl p-2.5 border-2 border-[#C5A059]/20 shadow-xs 
-        transition-all duration-300 hover:shadow-md max-w-[360px] mx-auto
-        cursor-pointer hover:scale-103 
-        active:scale-106'>
-            <div 
-            className='flex flex-col items-center justify-center 
-            ring-1 ring-[#C5A059]/20 border-2 border-[#C5A059]/40 
-            w-35 h-35 min-h-30 rounded-lg 
-            overflow-hidden bg-white'>
-                {/* Imagem do Produto */}
-                <img className='w-full h-full object-cover' src={produto.img || AlbertSalesLogo} alt={produto.nome} />
+        <article 
+            onClick={() => open(produto)} 
+            className='w-28 sm:w-32 flex flex-col items-center bg-white rounded-xl p-1.5 ring-1 ring-[#C5A059]/40 border border-[#C5A059]/20 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer hover:scale-[1.02] active:scale-95 text-center'
+        >
+            {/* Imagem do Produto */}
+            <div className='w-full aspect-square rounded-lg overflow-hidden border border-[#C5A059]/20 bg-gray-50 flex items-center justify-center'>
+                <img 
+                    className='w-full h-full object-cover' 
+                    src={produto.img || AlbertSalesLogo} 
+                    alt={produto.nome} 
+                    loading="lazy"
+                />
             </div>
 
             {/* Informações do Produto */}
-            <div className='text-start w-full max-h-15'>
-                <h3 className='font-bold text-xs text-gray-700 line-clamp-3'>
+            <div className='w-full mt-1.5 px-0.5 text-left flex flex-col justify-between'>
+                <h3 className='font-semibold text-[11px] sm:text-xs text-gray-800 line-clamp-1 leading-tight'>
                     {produto.nome}
                 </h3>
-                <h4 className='font-normal text-[8px] text-gray-400 line-clamp-3 leading-[12px]'>
-                    {produto.descricao}
-                </h4>
+                {produto.descricao && (
+                    <p className='text-[9px] text-gray-400 line-clamp-1 leading-snug mt-0.5'>
+                        {produto.descricao}
+                    </p>
+                )}
+                <span className='font-bold text-[11px] sm:text-xs text-[#C5A059] mt-0.5'>
+                    R$ {produto.valor}
+                </span>
             </div>
         </article>
     )

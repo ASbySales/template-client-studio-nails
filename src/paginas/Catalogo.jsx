@@ -35,6 +35,8 @@ export default function Catalogo() {
     useEffect(() => {
         async function carregarCatalogo() {
             try {
+                const tenantId = import.meta.env.VITE_TENANT_ID || 'demo'
+
                 const { data, error } = await supabase
                     .from('categorias')
                     .select(`
@@ -51,6 +53,7 @@ export default function Catalogo() {
                             aceita_adicionais
                         )
                     `)
+                    .eq('tenant_id', tenantId)
                 
                 if (error) throw error
 
@@ -192,15 +195,17 @@ export default function Catalogo() {
                 </a>
             </header>
 
-            {/* Seção Principal: Lista/Carrossel de Serviços */}
-            <main className='w-full max-w-[480px] flex flex-col items-center bg-white px-4 gap-6'>
-                <div className='border-t border-[#C5A059]/40 w-60'></div>
+            {/* Seção Principal: Lista/Carrossel de Serviços Compacta */}
+            <main className='w-full max-w-[480px] flex flex-col items-center bg-white px-3 gap-2.5 pb-6'>
+                <div className='border-t border-[#C5A059]/40 w-36 mb-1'></div>
                 
                 {categorias.filter(cat => cat.escolha).map((cat) => (
-                    <div key={cat.id} className='w-full flex flex-col bg-white pb-2 my-2 ring-1 ring-[#C5A059]/50 rounded-xl overflow-hidden shadow-sm'>
-                        <a className='text-2xl text-white bg-[#0B1233] font-cinzel font-semibold text-center select-none tracking-wide p-2.5 border-b border-[#C5A059]/40'>
-                            {cat.nome}
-                        </a>
+                    <div key={cat.id} className='w-full flex flex-col bg-white ring-1 ring-[#C5A059]/40 rounded-xl overflow-hidden shadow-xs'>
+                        <div className='bg-gradient-to-r from-[#0B1233] via-[#0F172A] to-[#1E293B] py-1.5 px-3 border-b border-[#C5A059]/40 flex items-center justify-center'>
+                            <h2 className='text-xs sm:text-sm text-[#C5A059] font-cinzel font-bold text-center tracking-wider uppercase select-none drop-shadow-xs'>
+                                {cat.nome}
+                            </h2>
+                        </div>
                         <ListaCards 
                             produtos={cat.servicos} 
                             opened={(produtoSelecionado) => { setActiveProduct(produtoSelecionado); }} 

@@ -14,22 +14,24 @@ export default function ListaCards({produtos, opened}) {
     }
 
     return (
-        <div className='w-full relative bg-white py-4 group'>
-            {/* Seta para a Esquerda (Aparece apenas em computadores - md:) */}
+        <div className='w-full relative bg-white py-1 group'>
+            {/* Seta para a Esquerda (Desktop) */}
             <button
-                onClick={() => scroll(-250)}
-                className='absolute left-1 top-1/2 -translate-y-1/2 z-10 hidden md:flex items-center justify-center w-10 h-10 rounded-full bg-white/90 hover:bg-white text-[#52AFAA] border border-[#6DC2C4]/20 shadow-md hover:scale-110 active:scale-100 transition-all duration-100 cursor-pointer'
+                type="button"
+                onClick={() => scroll(-200)}
+                className='absolute left-1 top-1/2 -translate-y-1/2 z-10 hidden md:flex items-center justify-center w-7 h-7 rounded-full bg-white/95 hover:bg-white text-[#C5A059] border border-[#C5A059]/30 shadow-sm hover:scale-110 active:scale-95 transition-all cursor-pointer text-xs'
+                aria-label="Rolar para esquerda"
             >
                 ❮
             </button>
 
-            {/* O Trilho (Contêiner rolável) */}
+            {/* O Trilho (Contêiner rolável compacto) */}
             <div 
                 ref={scrollContainerRef}
-                className='flex flex-row transition-transform duration-500 ease-out w-full overflow-auto no-scrollbar p-3'
+                className='flex flex-row gap-2 transition-transform duration-300 ease-out w-full overflow-x-auto no-scrollbar px-2 py-1'
             > 
                 {produtos.map((produto) => (
-                    <div key={produto.id} className='w-full px-3 drop-shadow-md'>
+                    <div key={produto.id} className='shrink-0'>
                         <Card 
                             produto={produto}
                             open={opened}
@@ -38,10 +40,12 @@ export default function ListaCards({produtos, opened}) {
                 ))}
             </div>
 
-            {/* Seta para a Direita (Aparece apenas em computadores - md:) */}
+            {/* Seta para a Direita (Desktop) */}
             <button
-                onClick={() => scroll(250)}
-                className='absolute right-1 top-1/2 -translate-y-1/2 z-10 hidden md:flex items-center justify-center w-10 h-10 rounded-full bg-white/90 hover:bg-white text-[#52AFAA] border border-[#6DC2C4]/20 shadow-md hover:scale-110 active:scale-100 transition-all duration-100 cursor-pointer'
+                type="button"
+                onClick={() => scroll(200)}
+                className='absolute right-1 top-1/2 -translate-y-1/2 z-10 hidden md:flex items-center justify-center w-7 h-7 rounded-full bg-white/95 hover:bg-white text-[#C5A059] border border-[#C5A059]/30 shadow-sm hover:scale-110 active:scale-95 transition-all cursor-pointer text-xs'
+                aria-label="Rolar para direita"
             >
                 ❯
             </button>
