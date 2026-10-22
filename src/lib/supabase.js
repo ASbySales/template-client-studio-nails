@@ -1,11 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Atenção: As variáveis de ambiente do Supabase não foram configuradas. Verifique seu arquivo .env!')
-}
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://lbtbxkwffixnvbsibcip.supabase.co'
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_JT7TZAE_0fxQcBHD8X-XpA_CHHmR9FT'
 
 // Adaptador inteligente para Docker PostgREST local e túneis (Localtunnel/Ngrok)
 const isLocalOrTunnel = supabaseUrl && !supabaseUrl.includes('supabase.co')
@@ -35,8 +31,8 @@ const customFetch = async (input, init = {}) => {
 }
 
 export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co', 
-  supabaseAnonKey || 'placeholder',
+  supabaseUrl, 
+  supabaseAnonKey,
   {
     auth: {
       persistSession: false,
