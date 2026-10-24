@@ -165,62 +165,33 @@ export default function Carrinho({ carr, itens, setItens, opcionaisData }) {
         try {
             setEnviando(true);
 
-            // Inserção da Solicitação Principal no Supabase
+            // Inserção atômica via RPC segura do Supabase
             const tenantId = import.meta.env.VITE_TENANT_ID || 'demo';
-            const { data: solicitacao, error: errorSol } = await supabase
-                .from('solicitacoes_agendamento')
-                .insert([{
-                    tenant_id: tenantId,
-                    nome_cliente: nome.trim(),
-                    whatsapp_cliente: whatsapp,
-                    valor_total: calcularTotalGeral(),
-                    status: 'pendente'
-                }])
-                .select()
-                .single();
-
-            if (errorSol) throw errorSol;
-
-            // Inserção dos Itens e Opcionais vinculados
-            for (const item of itens) {
-                const servicoId = parseInt(item.produto?.id);
-                if (!servicoId || isNaN(servicoId)) {
-                    throw new Error(`Serviço "${item.produto?.nome || 'desconhecido'}" sem identificador válido.`);
-                }
-
-                const { data: itemPrincipal, error: errorItem } = await supabase
-                    .from('itens_agendamento')
-                    .insert([{
-                        solicitacao_id: solicitacao.id,
-                        servico_id: servicoId,
-                        parent_item_id: null,
-                        quantidade: Number(item.quantidade) || 1
-                    }])
-                    .select()
-                    .single();
-
-                if (errorItem) throw errorItem;
-
-                const opcionaisParaInserir = Object.entries(item.opcionais || {})
+            const payloadItens = itens.map(item => ({
+                servico_id: parseInt(item.produto?.id),
+                quantidade: Number(item.quantidade) || 1,
+                opcionais: Object.entries(item.opcionais || {})
                     .filter(([opcId, qtd]) => {
                         const idNum = parseInt(opcId);
                         return !isNaN(idNum) && idNum > 0 && Number(qtd) > 0;
                     })
                     .map(([opcId, qtd]) => ({
-                        solicitacao_id: solicitacao.id,
                         servico_id: parseInt(opcId),
-                        parent_item_id: itemPrincipal.id,
-                        quantidade: Number(qtd) || 1
-                    }));
+                        quantidade: Number(qtd)
+                    }))
+            }));
 
-                if (opcionaisParaInserir.length > 0) {
-                    const { error: errorOpc } = await supabase
-                        .from('itens_agendamento')
-                        .insert(opcionaisParaInserir);
-                    
-                    if (errorOpc) throw errorOpc;
-                }
-            }
+            const { data: solicitacao, error: errorSol } = await supabase.rpc('criar_solicitacao_agendamento', {
+                p_tenant_id: tenantId,
+                p_nome_cliente: nome.trim(),
+                p_whatsapp_cliente: whatsapp,
+                p_data_agendamento: null,
+                p_horario_agendamento: null,
+                p_observacoes: null,
+                p_itens: payloadItens
+            });
+
+            if (errorSol) throw errorSol;
 
             // Salva dados no cache local
             localStorage.setItem('cliente_nome', nome.trim());
@@ -230,9 +201,9 @@ export default function Carrinho({ carr, itens, setItens, opcionaisData }) {
             // Atualiza histórico com itens completos para reaproveitamento
             const novoItemHist = {
                 id: solicitacao.id,
-                codigo: solicitacao.codigo_pedido,
+                codigo: solicitacao.id,
                 data: new Date().toISOString(),
-                valor: calcularTotalGeral(),
+                valor: solicitacao.valor_total,
                 itensCompletos: itens
             };
             const historicoAtualizado = [novoItemHist, ...historico.filter(h => h.id !== solicitacao.id)].slice(0, 5);
@@ -250,7 +221,7 @@ export default function Carrinho({ carr, itens, setItens, opcionaisData }) {
 
             // Redireciona para o WhatsApp oficial com o código do agendamento
             const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '5583982301526';
-            const codFormatado = solicitacao.codigo_pedido || `#AG-${String(solicitacao.id).padStart(4, '0')}`;
+            const codFormatado = `#AG-${String(solicitacao.id).padStart(4, '0')}`;
             const mensagemWhatsApp = encodeURIComponent(`Olá! Solicitei um agendamento de número ${codFormatado}`);
             window.open(`https://wa.me/${whatsappNumber}?text=${mensagemWhatsApp}`, '_blank');
 
