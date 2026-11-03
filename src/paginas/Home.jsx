@@ -86,9 +86,9 @@ export default function Home() {
             <footer className='w-full max-w-[480px] py-4 flex flex-col items-center gap-2'>
                 <hr className='w-16 border-t border-[#C5A059]/20' />
                 <div className='text-xs text-[#C5A059]/80 font-light'>
-                    by <a className='hover:underline font-normal text-[#C5A059]' target='_blank' rel='noopener noreferrer' href='https://asnamanga.vercel.app/'> As </a>
+                    by <a className='hover:underline font-normal text-[#C5A059]' target='_blank' rel='noopener noreferrer' href='https://asales.online/'> As </a>
                 </div>
-            </footer>
+          </footer>
         </div>
     )
 }
