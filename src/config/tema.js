@@ -3,7 +3,7 @@ export const LOJA_TEMA = {
   brandFullName: 'Studio Serena Nail Design',
   storagePrefix: 'studio_serena',
   defaultTenantId: 'demo',
-  defaultWhatsapp: '5583996180441',
+  defaultWhatsapp: '5583988964507',
   whatsappHeaderGreeting: 'Olá! Gostaria de consultar horários no Studio Serena Nail Design.',
   torreToken: '',
   logo: '/studio-logo.svg',
