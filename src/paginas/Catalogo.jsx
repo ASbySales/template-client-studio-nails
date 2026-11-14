@@ -1,248 +1,166 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
-import AlbertSalesLogo from '../assets/AlbertSalesLogo.png'
+import { RefreshCw } from 'lucide-react'
+import {
+  STUDIO_LOGO,
+  useUI,
+  useCatalogo,
+  useCarrinho,
+  PuxarAtualizar,
+  EstadoVazio,
+  ModalServico,
+  CarrinhoSheet,
+} from '../core'
 import ListaCards from '../componentes/ListaCards'
 import BotaoCarrinho from './botaoCarrinho'
-import Carrinho from './Carrinho'
-import ModalServico from '../componentes/ModalServico'
 
 export default function Catalogo() {
-    const navigate = useNavigate()
-    const [activeProduct, setActiveProduct] = useState(null)
-    const [itensCarrinho, setItensCarrinho] = useState(() => {
-        try {
-            const salvo = localStorage.getItem('carrinho_itens');
-            return salvo ? JSON.parse(salvo) : [];
-        } catch {
-            return [];
-        }
-    })
-    const [categorias, setCategorias] = useState([])
-    const [loading, setLoading] = useState(true)
-    const [carrinho, setCarrinho] = useState(false)
+  const navigate = useNavigate()
+  const ui = useUI()
+  const { categoriasVitrine, adicionais, loading, erro, recarregar } = useCatalogo()
+  const {
+    itens: itensCarrinho,
+    setItens: setItensCarrinho,
+    totalItens: totalQtdCarrinho,
+    adicionarAoCarrinho,
+    removerItem,
+    limparCarrinho,
+    alterarQtdPrincipal,
+    alterarOpcionalItem,
+  } = useCarrinho(adicionais, ui?.avisar)
 
-    // Sincroniza o carrinho com o localStorage sempre que for alterado
-    useEffect(() => {
-        try {
-            localStorage.setItem('carrinho_itens', JSON.stringify(itensCarrinho));
-        } catch (e) {
-            console.error('Erro ao sincronizar carrinho no cache:', e);
-        }
-    }, [itensCarrinho]);
+  const [activeProduct, setActiveProduct] = useState(null)
+  const [carrinho, setCarrinho] = useState(false)
 
-    // Busca dados do Supabase na inicialização
-    useEffect(() => {
-        async function carregarCatalogo() {
-            try {
-                const tenantId = import.meta.env.VITE_TENANT_ID || 'demo'
-
-                const { data, error } = await supabase
-                    .from('categorias')
-                    .select(`
-                        id,
-                        nome,
-                        escolha,
-                        servicos (
-                            id,
-                            nome,
-                            descricao,
-                            valor,
-                            img,
-                            tipo,
-                            aceita_adicionais
-                        )
-                    `)
-                    .eq('tenant_id', tenantId)
-                
-                if (error) throw error
-
-                // Formata o valor dos serviços para string com vírgula (ex: 120,00)
-                const categoriasFormatadas = (data || []).map(cat => ({
-                    ...cat,
-                    servicos: (cat.servicos || []).map(serv => ({
-                        ...serv,
-                        valor: parseFloat(serv.valor).toFixed(2).replace('.', ',')
-                    }))
-                }))
-
-                setCategorias(categoriasFormatadas)
-            } catch (error) {
-                console.error('Erro ao buscar dados do catálogo:', error)
-            } finally {
-                setLoading(false)
-            }
-        }
-
-        carregarCatalogo()
-    }, [])
-
-    const car = () => {
-        setCarrinho(true)
-    }
-
-    const nocar = () => {
-        setCarrinho(false)
-    }
-
-    const adicionarAoCarrinho = (itemComOpcionais) => {
-    const itemComId = {
-        produto: activeProduct,
-        quantidade: itemComOpcionais.quantidadePrincipal || itemComOpcionais.quantidade || 1,
-        opcionais: itemComOpcionais.opcionais || {},
-        idEscolha: Date.now()
-    };
-    setItensCarrinho(prev => [...prev, itemComId]);
-}
-
-
-    // Scroll Lock Inteligente: Trava o fundo mantendo a posição exata da tela ao abrir qualquer modal ou carrinho
-    useEffect(() => {
-        const modalAberto = activeProduct !== null || carrinho;
-
-        if (modalAberto) {
-            // Salva a posição atual do scroll se ainda não estiver salvo
-            if (!document.body.dataset.scrollY) {
-                const scrollY = window.scrollY;
-                document.body.dataset.scrollY = scrollY.toString();
-                document.body.style.position = 'fixed';
-                document.body.style.top = `-${scrollY}px`;
-                document.body.style.left = '0';
-                document.body.style.right = '0';
-                document.body.style.width = '100%';
-                document.body.style.overflow = 'hidden';
-            }
-        } else {
-            // Restaura o scroll para a posição onde o usuário estava
-            const scrollY = document.body.dataset.scrollY;
-            if (scrollY !== undefined) {
-                document.body.style.position = '';
-                document.body.style.top = '';
-                document.body.style.left = '';
-                document.body.style.right = '';
-                document.body.style.width = '';
-                document.body.style.overflow = '';
-                delete document.body.dataset.scrollY;
-                window.scrollTo(0, parseInt(scrollY || '0', 10));
-            }
-        }
-
-        return () => {
-            if (!activeProduct && !carrinho) {
-                const scrollY = document.body.dataset.scrollY;
-                if (scrollY !== undefined) {
-                    document.body.style.position = '';
-                    document.body.style.top = '';
-                    document.body.style.left = '';
-                    document.body.style.right = '';
-                    document.body.style.width = '';
-                    document.body.style.overflow = '';
-                    delete document.body.dataset.scrollY;
-                    window.scrollTo(0, parseInt(scrollY || '0', 10));
-                }
-            }
-        };
-    }, [activeProduct, carrinho]);
-
-    if (loading) {
-        return (
-            <div className='w-full min-h-screen flex flex-col items-center justify-center bg-white gap-3'>
-                <div className='w-10 h-10 border-4 border-[#C5A059]/20 border-t-[#C5A059] rounded-full animate-spin'></div>
-                <p className='text-sm text-gray-400 font-semibold font-cinzel'>Carregando serviços...</p>
-            </div>
-        )
-    }
-    
-    const opcionaisLista = categorias
-    .flatMap(cat => cat.servicos || [])
-    .filter(serv => serv.tipo === 'adicional' || serv.tipo === 'substitutivo' || serv.tipo === 'extra');
-
+  if (loading) {
     return (
-        <div className='w-full min-h-screen flex flex-col items-center bg-white animation-1s'>
-            
-            {/* O Cabeçalho */}
-            <header className='w-full relative bg-white flex flex-col items-center pb-4'>
-                <svg width="0" height="0" className="absolute">
-                    <defs>
-                        <clipPath id="minimal-01-mask" clipPathUnits="objectBoundingBox">
-                            <path d="M 0,1 L 0,0 L 1,0 L 1,1 C .65 .8, .35 .8, 0 1 Z" />
-                        </clipPath>
-                    </defs>
-                </svg>
-                
-                {/* Imagem de Capa Recortada com Gradiente Navy & Gold */}
-                <div className='h-[120px] w-full relative bg-gradient-to-tr from-[#0B1233] via-[#0F172A] to-[#1E293B]' 
-                style={{ clipPath: 'url(#minimal-01-mask)' }} />
-                
-                {/* Botão Voltar Flutuante */}
-                <button 
-                    onClick={() => navigate('/')} 
-                    className='fixed bottom-6 left-4 z-10 bg-white/90 hover:bg-white text-[#C5A059] border border-[#C5A059]/40 rounded-full px-4 py-1.5 shadow-md text-sm font-semibold font-cinzel transition-all hover:scale-105 active:scale-95 cursor-pointer'
-                >
-                    ❮ Voltar
-                </button>
-
-                {/* Foto do Perfil */}
-                <div className='absolute top-10 left-1/2 -translate-x-1/2 w-[130px] h-[130px] rounded-full border-b-4 border-[#C5A059] bg-[#0F172A] shadow-md overflow-hidden flex items-center justify-center'>
-                    <img className='w-full h-full object-cover' src={AlbertSalesLogo} alt="Logo A'S Studio Nails" />
-                </div>
-                
-                <a className='mt-[70px] text-3xl text-[#C5A059] font-cinzel font text-center select-none tracking-wide p-2 transition-all'>
-                    A'S
-                    <span className='text-sm block font-sans font-normal text-gray-500'>
-                        STUDIO NAILS
-                    </span>
-                </a>
-            </header>
-
-            {/* Seção Principal: Lista/Carrossel de Serviços Compacta */}
-            <main className='w-full max-w-[480px] flex flex-col items-center bg-white px-3 gap-2.5 pb-6'>
-                <div className='border-t border-[#C5A059]/40 w-36 mb-1'></div>
-                
-                {categorias.filter(cat => cat.escolha).map((cat) => (
-                    <div key={cat.id} className='w-full flex flex-col bg-white ring-1 ring-[#C5A059]/40 rounded-xl overflow-hidden shadow-xs'>
-                        <div className='bg-gradient-to-r from-[#0B1233] via-[#0F172A] to-[#1E293B] py-1.5 px-3 border-b border-[#C5A059]/40 flex items-center justify-center'>
-                            <h2 className='text-xs sm:text-sm text-[#C5A059] font-cinzel font-bold text-center tracking-wider uppercase select-none drop-shadow-xs'>
-                                {cat.nome}
-                            </h2>
-                        </div>
-                        <ListaCards 
-                            produtos={cat.servicos} 
-                            opened={(produtoSelecionado) => { setActiveProduct(produtoSelecionado); }} 
-                        />
-                    </div>
-                ))}
-            </main>
-            
-            {activeProduct && (
-                <ModalServico 
-                    produto={activeProduct}
-                    opcionais={opcionaisLista}
-                    onClose={() => setActiveProduct(null)}
-                    onConfirm={adicionarAoCarrinho}
-                />
-            )}
-
-            {!carrinho && (
-                <BotaoCarrinho carr={car}/>
-            )}
-
-            {carrinho && (
-                <Carrinho 
-                    carr={nocar} 
-                    itens={itensCarrinho} 
-                    setItens={setItensCarrinho}
-                    opcionaisData={opcionaisLista}
-                />
-            )}
-
-            {/* Rodapé */}
-            <footer className='w-full max-w-[480px] py-8 flex flex-col items-center justify-end bg-white gap-2'>
-                <hr className='w-16 border-t border-[#C5A059]/20'></hr>
-                <div className='text-xs text-[#C5A059]/80 font-light'>
-                    by <a className='hover:underline font-normal text-[#C5A059]' target='_blank' rel='noopener noreferrer' href='https://asales.online/'> As </a>
-                </div>
-            </footer>
-        </div>
+      <div className='w-full min-h-screen flex flex-col items-center justify-center bg-[#FBF9F5] gap-3'>
+        <div className='w-12 h-12 rounded-full border-4 border-[#9F6664] border-t-transparent animate-spin' />
+        <p className='text-xs font-semibold text-[#7D6C6A] font-cinzel tracking-wider'>
+          Carregando procedimentos...
+        </p>
+      </div>
     )
+  }
+
+  return (
+    <div className='w-full min-h-screen flex flex-col items-center justify-start bg-[#FBF9F5] text-[#2A2120] relative selection:bg-[#9F6664]/20'>
+      <PuxarAtualizar aoAtualizar={recarregar} className='w-full flex flex-col items-center flex-1'>
+        {/* Cabeçalho curvo limpo estilo JK / Flora Haste */}
+        <header className='w-full relative bg-white flex flex-col items-center pb-3 shadow-2xs border-b border-[#EDE3E0]'>
+          <svg width="0" height="0" className="absolute">
+            <defs>
+              <clipPath id="serena-catalogo-mask" clipPathUnits="objectBoundingBox">
+                <path d="M 0,1 L 0,0 L 1,0 L 1,1 C .65 .8, .35 .8, 0 1 Z" />
+              </clipPath>
+            </defs>
+          </svg>
+
+          <div
+            className='h-[126px] w-full relative bg-gradient-to-r from-[#F4E6E3] via-[#E8D0CC] to-[#F4E6E3]'
+            style={{ clipPath: 'url(#serena-catalogo-mask)' }}
+          />
+
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className='fixed top-4 left-4 z-20 bg-white/95 backdrop-blur-xs hover:bg-white text-[#9F6664] border border-[#E8DCD8] rounded-full px-3.5 py-1.5 shadow-sm text-xs font-semibold font-cinzel transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center gap-1'
+          >
+            ❮ Início
+          </button>
+
+          <div className='absolute top-11 left-1/2 -translate-x-1/2 w-[112px] h-[112px] rounded-full border-4 border-white border-b-[#C49391] bg-[#FBF9F5] shadow-md overflow-hidden flex items-center justify-center ring-1 ring-[#E8DCD8]'>
+            <img
+              className='w-full h-full object-cover'
+              src={STUDIO_LOGO}
+              alt="Logo Studio Serena"
+            />
+          </div>
+
+          <div className='mt-[64px] flex flex-col items-center text-center px-4'>
+            <h1 className='text-2xl text-[#2A2120] font-cinzel font-bold tracking-[0.1em]'>
+              STUDIO SERENA
+            </h1>
+            <span className='text-[11px] font-sans text-[#9F6664] font-semibold tracking-[0.2em] uppercase mt-0.5'>
+              Nail Design &amp; Care
+            </span>
+          </div>
+        </header>
+
+        {/* Vitrine de Categorias */}
+        <main className='w-full max-w-[480px] flex flex-col items-center px-3 gap-3.5 py-4 pb-24 flex-1'>
+          {erro || categoriasVitrine.length === 0 ? (
+            <div className='w-full bg-white ring-1 ring-[#EDE3E0] rounded-2xl shadow-2xs'>
+              <EstadoVazio
+                Icone={RefreshCw}
+                titulo={erro ? 'Catálogo indisponível' : 'Nenhum procedimento disponível'}
+                texto={erro || 'Nenhum serviço publicado no catálogo no momento.'}
+                acaoRotulo='Atualizar catálogo'
+                aoClicar={recarregar}
+              />
+            </div>
+          ) : (
+            categoriasVitrine.map((cat) => (
+              <div
+                key={cat.id}
+                className='w-full flex flex-col bg-white ring-1 ring-[#EDE3E0] rounded-2xl overflow-hidden shadow-2xs'
+              >
+                <div className='bg-gradient-to-r from-[#9F6664] via-[#B47D7B] to-[#9F6664] py-2 px-3 border-b border-[#E8DCD8] flex items-center justify-center'>
+                  <h2 className='text-xs sm:text-sm text-white font-cinzel font-bold text-center tracking-wider uppercase drop-shadow-2xs'>
+                    {cat.nome}
+                  </h2>
+                </div>
+                <ListaCards
+                  produtos={cat.servicos}
+                  opened={(prod) => setActiveProduct(prod)}
+                />
+              </div>
+            ))
+          )}
+        </main>
+      </PuxarAtualizar>
+
+      {activeProduct && (
+        <ModalServico
+          key={activeProduct.id}
+          produto={activeProduct}
+          opcionais={adicionais}
+          onClose={() => setActiveProduct(null)}
+          onConfirm={(dados) => adicionarAoCarrinho(activeProduct, dados)}
+        />
+      )}
+
+      <BotaoCarrinho carr={() => setCarrinho(true)} totalItens={totalQtdCarrinho} />
+
+      {carrinho && (
+        <CarrinhoSheet
+          carr={() => setCarrinho(false)}
+          itens={itensCarrinho}
+          setItens={setItensCarrinho}
+          opcionaisData={adicionais}
+          removerItem={removerItem}
+          limparCarrinho={limparCarrinho}
+          alterarQtdPrincipal={alterarQtdPrincipal}
+          alterarOpcionalItem={alterarOpcionalItem}
+        />
+      )}
+
+      <footer className='w-full max-w-[480px] py-6 flex flex-col items-center justify-end gap-1 text-center mt-auto'>
+        <div className='text-[11px] text-[#7D6C6A] font-light'>
+          Studio Serena · Nail Design &amp; Care
+        </div>
+        <div className='text-[10px] text-[#A49391]'>
+          by{' '}
+          <a
+            className='hover:underline font-medium text-[#7D6C6A]'
+            target='_blank'
+            rel='noopener noreferrer'
+            href='https://asales.online/'
+          >
+            AS Gestão
+          </a>
+        </div>
+      </footer>
+    </div>
+  )
 }

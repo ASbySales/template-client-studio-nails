@@ -1,0 +1,74 @@
+@keyframes ag-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes ag-modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes ag-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ag-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.ag-anim-sheet {
+  animation: ag-sheet-in 0.26s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+@media (min-width: 640px) {
+  .ag-anim-sheet {
+    animation: ag-modal-in 0.2s cubic-bezier(0.2, 0.9, 0.3, 1);
+  }
+}
+
+.ag-anim-fade {
+  animation: ag-fade-in 0.18s ease;
+}
+
+.ag-anim-pop {
+  animation: ag-pop-in 0.22s ease;
+}
+
+.ag-pb-safe {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+}
+
+.ag-pt-safe {
+  top: max(0.75rem, env(safe-area-inset-top, 0px));
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
