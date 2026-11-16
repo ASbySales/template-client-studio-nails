@@ -3,7 +3,7 @@ import { supabase } from './supabase'
 import { TORRE_STATUS_TOKEN } from './env'
 import { LOJA_TEMA } from '../config/tema'
 
-const SUPORTE_WHATSAPP = '5583996180441'
+const SUPORTE_WHATSAPP = '5583988964507'
 
 export default function AssinaturaGuard({ children, token = TORRE_STATUS_TOKEN }) {
   const [status, setStatus] = useState({
