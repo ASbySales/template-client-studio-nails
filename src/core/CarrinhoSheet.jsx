@@ -1,5 +1,18 @@
-import { useState } from 'react'
-import { ArrowLeft, History, MessageCircle, RotateCcw, ShoppingBag, Trash2 } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import {
+  AlertCircle,
+  ArrowLeft,
+  Calendar,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  History,
+  MessageCircle,
+  RotateCcw,
+  ShoppingBag,
+  Trash2,
+} from 'lucide-react'
 import { LOJA_TEMA } from '../config/tema'
 import { STORAGE_PREFIX, STUDIO_LOGO, TENANT_ID, WHATSAPP_NUMBER } from './env'
 import { BottomSheet, EstadoVazio } from './FeedbackUI'
@@ -11,15 +24,38 @@ import {
   calcularPrecoItem,
   calcularTotalCarrinho,
   contarSubstitutivos,
+  formatarDataBr,
   formatarMoeda,
+  horarioJaPassouHoje,
   mascaraWhatsapp,
+  obterDataHojeISO,
+  obterDiaSemanaISO,
+  obterHorariosDoDia,
 } from './regrasCalculo'
 import {
+  buscarDatasOcupadas,
   enviarSolicitacaoAgendamento,
   obterDadosClienteSalvos,
   obterHistoricoSalvo,
   prepararItensRepetirPedido,
 } from './checkoutService'
+
+const MESES_PT = [
+  'Janeiro',
+  'Fevereiro',
+  'Março',
+  'Abril',
+  'Maio',
+  'Junho',
+  'Julho',
+  'Agosto',
+  'Setembro',
+  'Outubro',
+  'Novembro',
+  'Dezembro',
+]
+
+const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
 function fallbackImagem(e) {
   if (e.currentTarget.dataset.fbDone) return
@@ -42,9 +78,66 @@ export default function CarrinhoSheet({
   const [historico, setHistorico] = useState(() => obterHistoricoSalvo(STORAGE_PREFIX))
   const [nome, setNome] = useState(() => obterDadosClienteSalvos(STORAGE_PREFIX).nome)
   const [whatsapp, setWhatsapp] = useState(() => obterDadosClienteSalvos(STORAGE_PREFIX).whatsapp)
+  const [dataAgendamento, setDataAgendamento] = useState('')
+  const [horarioAgendamento, setHorarioAgendamento] = useState('')
+  const [mesCalendario, setMesCalendario] = useState(() => {
+    const hoje = obterDataHojeISO()
+    const [ano, mes] = hoje.split('-').map(Number)
+    return new Date(ano, (mes || 1) - 1, 1)
+  })
+  const [mapaOcupadas, setMapaOcupadas] = useState({})
+  const [listaOcupadas, setListaOcupadas] = useState([])
+  const [carregandoDatas, setCarregandoDatas] = useState(false)
   const [honeypot, setHoneypot] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [erroEnvio, setErroEnvio] = useState('')
+
+  const hojeISO = obterDataHojeISO()
+
+  useEffect(() => {
+    if (passo !== 'checkout') return
+    let ativo = true
+    setCarregandoDatas(true)
+    buscarDatasOcupadas(TENANT_ID)
+      .then((res) => {
+        if (!ativo) return
+        setMapaOcupadas(res.mapa || {})
+        setListaOcupadas(res.datas || [])
+      })
+      .finally(() => {
+        if (ativo) setCarregandoDatas(false)
+      })
+    return () => {
+      ativo = false
+    }
+  }, [passo])
+
+  const diasDoMes = useMemo(() => {
+    const ano = mesCalendario.getFullYear()
+    const mes = mesCalendario.getMonth()
+    const primeiroDiaSemana = new Date(ano, mes, 1).getDay()
+    const totalDias = new Date(ano, mes + 1, 0).getDate()
+    const celulas = []
+    for (let i = 0; i < primeiroDiaSemana; i += 1) {
+      celulas.push(null)
+    }
+    for (let dia = 1; dia <= totalDias; dia += 1) {
+      const mm = String(mes + 1).padStart(2, '0')
+      const dd = String(dia).padStart(2, '0')
+      celulas.push({ dia, iso: `${ano}-${mm}-${dd}` })
+    }
+    return celulas
+  }, [mesCalendario])
+
+  const mesAtualPrefix = `${mesCalendario.getFullYear()}-${String(mesCalendario.getMonth() + 1).padStart(2, '0')}`
+  const podeVoltarMes = mesAtualPrefix > hojeISO.slice(0, 7)
+  const datasOcupadasNoMes = listaOcupadas.filter((d) => d.data.startsWith(mesAtualPrefix))
+  const infoDiaSelecionado = dataAgendamento ? mapaOcupadas[dataAgendamento] : null
+  const horariosDiaSelecionado = useMemo(
+    () => (dataAgendamento ? obterHorariosDoDia(dataAgendamento) : []),
+    [dataAgendamento]
+  )
+  const isSabadoSelecionado = dataAgendamento ? obterDiaSemanaISO(dataAgendamento) === 6 : false
 
   useScrollLock(true)
   useOverlayBack(true, () => {
@@ -132,6 +225,8 @@ export default function CarrinhoSheet({
         storagePrefix: STORAGE_PREFIX,
         nome,
         whatsapp,
+        dataAgendamento,
+        horarioAgendamento,
         honeypot,
         itens,
         opcionaisData,
@@ -246,9 +341,17 @@ export default function CarrinhoSheet({
                 <span className={`text-xs font-bold font-mono ${t.accentText}`}>
                   {hist.codigo}
                 </span>
-                <span className={`text-[10px] ${t.textMuted}`}>
-                  {hist.data ? new Date(hist.data).toLocaleDateString('pt-BR') : ''}
-                </span>
+                <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                  {hist.dataAgendamento && (
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${t.pillBadge}`}>
+                      {formatarDataBr(hist.dataAgendamento)}
+                      {hist.horarioAgendamento ? ` · ${hist.horarioAgendamento}` : ''}
+                    </span>
+                  )}
+                  <span className={`text-[10px] ${t.textMuted}`}>
+                    {hist.data ? new Date(hist.data).toLocaleDateString('pt-BR') : ''}
+                  </span>
+                </div>
               </div>
 
               <div className="flex flex-col gap-1">
@@ -421,8 +524,283 @@ export default function CarrinhoSheet({
           />
 
           <p className={`text-xs leading-relaxed ${t.textMuted}`}>
-            Informe seus dados para registrar sua solicitação e confirmar o horário pelo WhatsApp:
+            Escolha a data e o horário desejados (até 2h30 por período) e confirme no WhatsApp:
           </p>
+
+          <div className={`rounded-2xl p-3 flex flex-col gap-2.5 ${t.cardItemBg}`}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5">
+                <Calendar className={`w-4 h-4 ${t.accentText}`} />
+                <span className={`text-xs font-bold ${t.textPrimary}`}>
+                  Data do Agendamento
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  disabled={!podeVoltarMes}
+                  onClick={() =>
+                    setMesCalendario((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))
+                  }
+                  aria-label="Mês anterior"
+                  className={`h-7 w-7 rounded-lg flex items-center justify-center ${t.stepBtn} ${
+                    podeVoltarMes ? 'cursor-pointer' : t.stepBtnDisabled
+                  }`}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className={`text-[11px] font-bold min-w-[96px] text-center ${t.textPrimary}`}>
+                  {MESES_PT[mesCalendario.getMonth()]} {mesCalendario.getFullYear()}
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setMesCalendario((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))
+                  }
+                  aria-label="Próximo mês"
+                  className={`h-7 w-7 rounded-lg flex items-center justify-center cursor-pointer ${t.stepBtn}`}
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-2 text-[10px]">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <span className={`inline-flex items-center gap-1 ${t.textMuted}`}>
+                  <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
+                  Com reservas
+                </span>
+                <span className={`inline-flex items-center gap-1 ${t.textMuted}`}>
+                  <span className={`w-2 h-2 rounded-full border inline-block ${t.sheetBorder}`} />
+                  Livre
+                </span>
+                <span className={`inline-flex items-center gap-1 ${t.textMuted}`}>
+                  Dom fechado
+                </span>
+              </div>
+              {carregandoDatas && (
+                <span className={`text-[10px] italic ${t.textMuted}`}>Consultando...</span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-7 gap-1 text-center">
+              {DIAS_SEMANA.map((dia) => (
+                <span key={dia} className={`text-[10px] font-bold py-0.5 ${t.textMuted}`}>
+                  {dia}
+                </span>
+              ))}
+
+              {diasDoMes.map((cel, i) => {
+                if (!cel) return <div key={`v-${i}`} />
+                const diaSem = obterDiaSemanaISO(cel.iso)
+                const isDomingo = diaSem === 0
+                const isSabado = diaSem === 6
+                const passado = cel.iso < hojeISO
+                const desabilitado = passado || isDomingo
+                const maxVagasDia = isSabado ? 2 : 4
+                const infoOcup = mapaOcupadas[cel.iso]
+                const totalDia = infoOcup?.total || 0
+                const ocupado = totalDia > 0
+                const lotado = totalDia >= maxVagasDia
+                const selecionado = dataAgendamento === cel.iso
+
+                return (
+                  <button
+                    key={cel.iso}
+                    type="button"
+                    disabled={desabilitado}
+                    onClick={() => {
+                      setDataAgendamento(cel.iso)
+                      const permitidos = obterHorariosDoDia(cel.iso)
+                      setHorarioAgendamento((atual) =>
+                        permitidos.some(
+                          (h) => h.id === atual && !horarioJaPassouHoje(cel.iso, h.inicioMin)
+                        )
+                          ? atual
+                          : ''
+                      )
+                      setErroEnvio('')
+                    }}
+                    title={
+                      isDomingo
+                        ? 'Domingo: sem atendimento'
+                        : passado
+                          ? 'Data passada'
+                          : ocupado
+                            ? `${formatarDataBr(cel.iso)}: ${totalDia}/${maxVagasDia} horário(s) já solicitados`
+                            : `${formatarDataBr(cel.iso)}: ${maxVagasDia} horários livres`
+                    }
+                    style={
+                      selecionado
+                        ? {
+                            backgroundColor: LOJA_TEMA.corPrimaria,
+                            color: LOJA_TEMA.isDark ? '#111111' : '#FFFFFF',
+                            borderColor: LOJA_TEMA.corPrimaria,
+                          }
+                        : undefined
+                    }
+                    className={`relative h-9 rounded-xl text-xs font-bold flex flex-col items-center justify-center border transition-all ${
+                      desabilitado
+                        ? `opacity-25 cursor-not-allowed border-transparent ${t.textMuted}`
+                        : selecionado
+                          ? 'shadow-sm scale-[1.03] cursor-pointer'
+                          : lotado
+                            ? `border-rose-500/60 bg-rose-500/12 hover:bg-rose-500/20 cursor-pointer ${t.textPrimary}`
+                            : ocupado
+                              ? `border-amber-500/60 bg-amber-500/12 hover:bg-amber-500/20 cursor-pointer ${t.textPrimary}`
+                              : `${t.mediaBg} cursor-pointer hover:opacity-85 ${t.textPrimary}`
+                    }`}
+                  >
+                    <span className="leading-none">{cel.dia}</span>
+                    {!desabilitado && ocupado && (
+                      <span
+                        className={`text-[8px] font-bold leading-none mt-0.5 ${
+                          selecionado
+                            ? 'opacity-90'
+                            : lotado
+                              ? 'text-rose-500'
+                              : 'text-amber-500'
+                        }`}
+                      >
+                        {totalDia}/{maxVagasDia}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+
+            {dataAgendamento ? (
+              <div className={`border-t pt-2.5 flex flex-col gap-2 ${t.sheetBorder}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <Clock className={`w-3.5 h-3.5 ${t.accentText}`} />
+                    <span className={`text-xs font-bold ${t.textPrimary}`}>
+                      Horário ({formatarDataBr(dataAgendamento)})
+                    </span>
+                  </div>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${t.pillBadge}`}>
+                    {isSabadoSelecionado ? 'Sábado · 2 manhã' : 'Seg a Sex · até 2h30'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  {horariosDiaSelecionado.map((slot) => {
+                    const passouHoje = horarioJaPassouHoje(dataAgendamento, slot.inicioMin)
+                    const slotAprovado = infoDiaSelecionado?.horariosAprovados?.includes(slot.id)
+                    const slotOcupado =
+                      slotAprovado || infoDiaSelecionado?.horariosOcupados?.includes(slot.id)
+                    const slotSelecionado = horarioAgendamento === slot.id
+
+                    return (
+                      <button
+                        key={slot.id}
+                        type="button"
+                        disabled={passouHoje}
+                        onClick={() => {
+                          setHorarioAgendamento(slot.id)
+                          setErroEnvio('')
+                        }}
+                        style={
+                          slotSelecionado
+                            ? {
+                                backgroundColor: LOJA_TEMA.corPrimaria,
+                                color: LOJA_TEMA.isDark ? '#111111' : '#FFFFFF',
+                                borderColor: LOJA_TEMA.corPrimaria,
+                              }
+                            : undefined
+                        }
+                        className={`rounded-xl px-2.5 py-2 border text-left transition-all flex flex-col gap-0.5 ${
+                          passouHoje
+                            ? `opacity-35 cursor-not-allowed ${t.mediaBg} ${t.textMuted}`
+                            : slotSelecionado
+                              ? 'shadow-sm scale-[1.02] cursor-pointer'
+                              : slotOcupado
+                                ? `border-amber-500/60 bg-amber-500/12 hover:bg-amber-500/20 cursor-pointer ${t.textPrimary}`
+                                : `${t.mediaBg} cursor-pointer hover:opacity-85 ${t.textPrimary}`
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-[11px] font-bold leading-tight">{slot.id}</span>
+                        </div>
+                        <span
+                          className={`text-[9px] font-semibold leading-tight ${
+                            slotSelecionado
+                              ? 'opacity-90'
+                              : passouHoje
+                                ? t.textMuted
+                                : slotOcupado
+                                  ? 'text-amber-500'
+                                  : t.textMuted
+                          }`}
+                        >
+                          {passouHoje
+                            ? 'Horário encerrado'
+                            : slotAprovado
+                              ? 'Já aprovado'
+                              : slotOcupado
+                                ? 'Já solicitado'
+                                : `${slot.turno} · Livre`}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {infoDiaSelecionado ? (
+                  <div
+                    className={`rounded-xl p-2.5 border text-[11px] leading-snug flex items-start gap-2 ${
+                      LOJA_TEMA.isDark
+                        ? 'bg-amber-950/50 border-amber-500/40 text-amber-200'
+                        : 'bg-amber-50 border-amber-300/80 text-amber-950'
+                    }`}
+                  >
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
+                    <span>
+                      <strong>{formatarDataBr(dataAgendamento)}</strong> já possui{' '}
+                      <strong>
+                        {infoDiaSelecionado.total} de {isSabadoSelecionado ? 2 : 4} períodos
+                      </strong>{' '}
+                      com solicitação{infoDiaSelecionado.possuiAprovado ? ' (incluindo horário aprovado)' : ''}.
+                      {horarioAgendamento &&
+                      infoDiaSelecionado.horariosOcupados?.includes(horarioAgendamento)
+                        ? ` O período ${horarioAgendamento} já tem solicitação — confirmaremos no WhatsApp.`
+                        : ' Alinharemos a disponibilidade exata pelo WhatsApp.'}
+                    </span>
+                  </div>
+                ) : (
+                  <div
+                    className={`rounded-xl p-2.5 border text-[11px] leading-snug flex items-start gap-2 ${
+                      LOJA_TEMA.isDark
+                        ? 'bg-emerald-950/40 border-emerald-500/35 text-emerald-200'
+                        : 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                    }`}
+                  >
+                    <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-500" />
+                    <span>
+                      <strong>{formatarDataBr(dataAgendamento)}</strong> está livre em todos os{' '}
+                      {isSabadoSelecionado ? '2 horários da manhã' : '4 horários do dia'}
+                      {horarioAgendamento ? ` (${horarioAgendamento} selecionado).` : ' — escolha seu horário acima.'}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              datasOcupadasNoMes.length > 0 && (
+                <p className={`text-[10px] leading-snug ${t.textMuted}`}>
+                  Dias com reserva neste mês:{' '}
+                  <strong className={t.textSecondary}>
+                    {datasOcupadasNoMes
+                      .slice(0, 6)
+                      .map((d) => `${d.data.slice(8, 10)}/${d.data.slice(5, 7)} (${d.total})`)
+                      .join(', ')}
+                    {datasOcupadasNoMes.length > 6 ? '...' : ''}
+                  </strong>
+                </p>
+              )
+            )}
+          </div>
 
           <div>
             <label className={`block text-xs font-bold mb-1 ${t.textSecondary}`}>

@@ -4,10 +4,59 @@ import {
   calcularTotalCarrinho,
   formatarCodigoAgendamento,
   formatarMensagemWhatsApp,
+  horarioJaPassouHoje,
   montarPayloadItens,
+  obterDataHojeISO,
+  obterHorariosDoDia,
   validarItemCarrinho,
   validarWhatsapp,
 } from './regrasCalculo'
+
+export async function buscarDatasOcupadas(tenantId = TENANT_ID) {
+  try {
+    const { data, error } = await supabase.rpc('listar_datas_ocupadas_publico', {
+      p_tenant_id: tenantId,
+    })
+    if (error) throw error
+
+    const datas = (Array.isArray(data) ? data : [])
+      .filter((r) => r && r.data_agendamento)
+      .map((r) => {
+        const horariosRaw = Array.isArray(r.horarios_ocupados)
+          ? r.horarios_ocupados
+          : Array.isArray(r.horarios)
+            ? r.horarios
+            : []
+        const horariosOcupados = horariosRaw
+          .map((h) => (typeof h === 'string' ? h : h?.horario || h?.horario_agendamento || ''))
+          .filter(Boolean)
+        const horariosAprovados = Array.isArray(r.horarios_aprovados)
+          ? r.horarios_aprovados.filter(Boolean)
+          : horariosRaw
+              .filter((h) => typeof h === 'object' && (h?.aprovado || h?.status === 'aprovado'))
+              .map((h) => h.horario || h.horario_agendamento)
+              .filter(Boolean)
+
+        return {
+          data: String(r.data_agendamento).slice(0, 10),
+          total: Number(r.total_agendamentos) || 1,
+          possuiAprovado: Boolean(r.possui_aprovado),
+          horariosOcupados,
+          horariosAprovados,
+        }
+      })
+
+    const mapa = {}
+    datas.forEach((d) => {
+      mapa[d.data] = d
+    })
+
+    return { ok: true, datas, mapa }
+  } catch (e) {
+    console.warn('Não foi possível consultar datas ocupadas:', e)
+    return { ok: false, datas: [], mapa: {} }
+  }
+}
 
 const KEYS = (prefix = STORAGE_PREFIX) => ({
   carrinho: `${prefix}_carrinho_itens`,
@@ -86,6 +135,8 @@ export async function enviarSolicitacaoAgendamento({
   storagePrefix = STORAGE_PREFIX,
   nome,
   whatsapp,
+  dataAgendamento = null,
+  horarioAgendamento = null,
   honeypot = '',
   itens = [],
   opcionaisData = [],
@@ -104,6 +155,30 @@ export async function enviarSolicitacaoAgendamento({
     throw new Error('Informe um número de WhatsApp válido com DDD.')
   }
 
+  const dataLimpa = String(dataAgendamento || '').trim()
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dataLimpa)) {
+    throw new Error('Por favor, selecione a data desejada para o agendamento.')
+  }
+
+  if (dataLimpa < obterDataHojeISO()) {
+    throw new Error('Selecione uma data a partir de hoje.')
+  }
+
+  const horariosPermitidos = obterHorariosDoDia(dataLimpa)
+  if (horariosPermitidos.length === 0) {
+    throw new Error('Não realizamos atendimentos aos domingos. Selecione de segunda a sábado.')
+  }
+
+  const horarioLimpo = String(horarioAgendamento || '').trim()
+  const slotObj = horariosPermitidos.find((h) => h.id === horarioLimpo)
+  if (!slotObj) {
+    throw new Error('Por favor, selecione um dos horários disponíveis para a data escolhida.')
+  }
+
+  if (horarioJaPassouHoje(dataLimpa, slotObj.inicioMin)) {
+    throw new Error('Este horário de hoje já se encerrou. Escolha outro horário ou outra data.')
+  }
+
   if (!Array.isArray(itens) || itens.length === 0) {
     throw new Error('Sua lista de serviços está vazia.')
   }
@@ -116,8 +191,8 @@ export async function enviarSolicitacaoAgendamento({
       p_tenant_id: tenantId,
       p_nome_cliente: nome.trim(),
       p_whatsapp_cliente: whatsapp,
-      p_data_agendamento: null,
-      p_horario_agendamento: null,
+      p_data_agendamento: dataLimpa,
+      p_horario_agendamento: horarioLimpo,
       p_observacoes: null,
       p_itens: payloadItens,
     }
@@ -140,6 +215,8 @@ export async function enviarSolicitacaoAgendamento({
     id: solicitacao?.id ?? Date.now(),
     codigo: codigoFormatado,
     data: new Date().toISOString(),
+    dataAgendamento: dataLimpa,
+    horarioAgendamento: horarioLimpo,
     valor: calcularTotalCarrinho(itens, opcionaisData),
     itensCompletos: itens,
   }
@@ -160,6 +237,8 @@ export async function enviarSolicitacaoAgendamento({
     codigoFormatado,
     nome,
     whatsapp,
+    dataAgendamento: dataLimpa,
+    horarioAgendamento: horarioLimpo,
     itens,
     opcionaisData,
     brandName,

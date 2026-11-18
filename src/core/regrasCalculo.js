@@ -164,6 +164,73 @@ export function montarPayloadItens(itens = []) {
   })
 }
 
+export const HORARIOS_SEMANA = [
+  { id: '07:00 - 09:30', rotulo: '07:00 às 09:30', inicioMin: 7 * 60, turno: 'Manhã' },
+  { id: '09:30 - 12:00', rotulo: '09:30 às 12:00', inicioMin: 9 * 60 + 30, turno: 'Manhã' },
+  { id: '13:00 - 15:30', rotulo: '13:00 às 15:30', inicioMin: 13 * 60, turno: 'Tarde' },
+  { id: '15:30 - 18:00', rotulo: '15:30 às 18:00', inicioMin: 15 * 60 + 30, turno: 'Tarde' },
+]
+
+export const HORARIOS_SABADO = HORARIOS_SEMANA.slice(0, 2)
+
+export function obterDataHojeISO() {
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date())
+  } catch {
+    const d = new Date()
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
+}
+
+export function obterDiaSemanaISO(isoDate) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(isoDate || '').trim())
+  if (!m) return -1
+  return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12, 0, 0)).getUTCDay()
+}
+
+export function obterHorariosDoDia(isoDate) {
+  const diaSemana = obterDiaSemanaISO(isoDate)
+  if (diaSemana < 0 || diaSemana === 0) return []
+  if (diaSemana === 6) return HORARIOS_SABADO
+  return HORARIOS_SEMANA
+}
+
+export function obterMinutosAgoraSP() {
+  try {
+    const parts = new Intl.DateTimeFormat('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).formatToParts(new Date())
+    const h = Number(parts.find((p) => p.type === 'hour')?.value ?? 0)
+    const min = Number(parts.find((p) => p.type === 'minute')?.value ?? 0)
+    return h * 60 + min
+  } catch {
+    const d = new Date()
+    return d.getHours() * 60 + d.getMinutes()
+  }
+}
+
+export function horarioJaPassouHoje(isoDate, inicioMin) {
+  if (!isoDate || isoDate !== obterDataHojeISO()) return false
+  return obterMinutosAgoraSP() >= Number(inicioMin)
+}
+
+export function formatarDataBr(isoDate) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(isoDate || '').trim())
+  if (!m) return ''
+  return `${m[3]}/${m[2]}/${m[1]}`
+}
+
 export function formatarCodigoAgendamento(solicitacao) {
   const id = Number(solicitacao?.id)
   if (Number.isInteger(id) && id > 0) {
@@ -176,14 +243,24 @@ export function formatarMensagemWhatsApp({
   codigoFormatado,
   nome,
   whatsapp,
+  dataAgendamento,
+  horarioAgendamento,
   itens,
   opcionaisData,
   brandName,
 }) {
+  const dataFmt = formatarDataBr(dataAgendamento)
+  const horarioLimpo = String(horarioAgendamento || '').trim()
   let msg = `💅 *SOLICITAÇÃO DE AGENDAMENTO - ${String(brandName || 'STUDIO').toUpperCase()}* (${codigoFormatado})\n\n`
   msg += `👤 *Cliente:* ${String(nome || '').trim()}\n`
-  msg += `📱 *WhatsApp:* ${whatsapp}\n\n`
-  msg += `📋 *PROCEDIMENTOS:*\n`
+  msg += `📱 *WhatsApp:* ${whatsapp}\n`
+  if (dataFmt) {
+    msg += `📅 *Data solicitada:* ${dataFmt}\n`
+  }
+  if (horarioLimpo) {
+    msg += `🕐 *Horário desejado:* ${horarioLimpo}\n`
+  }
+  msg += `\n📋 *PROCEDIMENTOS:*\n`
 
   ;(itens || []).forEach((it, idx) => {
     const subItem = calcularPrecoItem(it, opcionaisData)
