@@ -139,6 +139,13 @@ export default function CarrinhoSheet({
   )
   const isSabadoSelecionado = dataAgendamento ? obterDiaSemanaISO(dataAgendamento) === 6 : false
 
+  useEffect(() => {
+    if (!horarioAgendamento || !infoDiaSelecionado?.horariosAprovados?.includes(horarioAgendamento)) {
+      return
+    }
+    setHorarioAgendamento('')
+  }, [horarioAgendamento, infoDiaSelecionado])
+
   useScrollLock(true)
   useOverlayBack(true, () => {
     if (!enviando) carr?.()
@@ -215,6 +222,15 @@ export default function CarrinhoSheet({
   const handleSubmit = async (e) => {
     e.preventDefault()
     setErroEnvio('')
+
+    if (
+      dataAgendamento &&
+      horarioAgendamento &&
+      infoDiaSelecionado?.horariosAprovados?.includes(horarioAgendamento)
+    ) {
+      setErroEnvio('Este horário já foi preenchido. Por favor, escolha outro período.')
+      return
+    }
 
     try {
       setEnviando(true)
@@ -612,10 +628,14 @@ export default function CarrinhoSheet({
                     disabled={desabilitado}
                     onClick={() => {
                       setDataAgendamento(cel.iso)
+                      const infoDestino = mapaOcupadas[cel.iso]
                       const permitidos = obterHorariosDoDia(cel.iso)
                       setHorarioAgendamento((atual) =>
                         permitidos.some(
-                          (h) => h.id === atual && !horarioJaPassouHoje(cel.iso, h.inicioMin)
+                          (h) =>
+                            h.id === atual &&
+                            !horarioJaPassouHoje(cel.iso, h.inicioMin) &&
+                            !infoDestino?.horariosAprovados?.includes(h.id)
                         )
                           ? atual
                           : ''
@@ -688,17 +708,21 @@ export default function CarrinhoSheet({
                 <div className="grid grid-cols-2 gap-2">
                   {horariosDiaSelecionado.map((slot) => {
                     const passouHoje = horarioJaPassouHoje(dataAgendamento, slot.inicioMin)
-                    const slotAprovado = infoDiaSelecionado?.horariosAprovados?.includes(slot.id)
+                    const slotAprovado = Boolean(
+                      infoDiaSelecionado?.horariosAprovados?.includes(slot.id)
+                    )
                     const slotOcupado =
                       slotAprovado || infoDiaSelecionado?.horariosOcupados?.includes(slot.id)
-                    const slotSelecionado = horarioAgendamento === slot.id
+                    const slotBloqueado = passouHoje || slotAprovado
+                    const slotSelecionado = !slotBloqueado && horarioAgendamento === slot.id
 
                     return (
                       <button
                         key={slot.id}
                         type="button"
-                        disabled={passouHoje}
+                        disabled={slotBloqueado}
                         onClick={() => {
+                          if (slotBloqueado) return
                           setHorarioAgendamento(slot.id)
                           setErroEnvio('')
                         }}
@@ -714,11 +738,13 @@ export default function CarrinhoSheet({
                         className={`rounded-xl px-2.5 py-2 border text-left transition-all flex flex-col gap-0.5 ${
                           passouHoje
                             ? `opacity-35 cursor-not-allowed ${t.mediaBg} ${t.textMuted}`
-                            : slotSelecionado
-                              ? 'shadow-sm scale-[1.02] cursor-pointer'
-                              : slotOcupado
-                                ? `border-amber-500/60 bg-amber-500/12 hover:bg-amber-500/20 cursor-pointer ${t.textPrimary}`
-                                : `${t.mediaBg} cursor-pointer hover:opacity-85 ${t.textPrimary}`
+                            : slotAprovado
+                              ? `opacity-50 cursor-not-allowed border-rose-500/40 bg-rose-500/10 ${t.textMuted}`
+                              : slotSelecionado
+                                ? 'shadow-sm scale-[1.02] cursor-pointer'
+                                : slotOcupado
+                                  ? `border-amber-500/60 bg-amber-500/12 hover:bg-amber-500/20 cursor-pointer ${t.textPrimary}`
+                                  : `${t.mediaBg} cursor-pointer hover:opacity-85 ${t.textPrimary}`
                         }`}
                       >
                         <div className="flex items-center justify-between gap-1">
@@ -730,15 +756,17 @@ export default function CarrinhoSheet({
                               ? 'opacity-90'
                               : passouHoje
                                 ? t.textMuted
-                                : slotOcupado
-                                  ? 'text-amber-500'
-                                  : t.textMuted
+                                : slotAprovado
+                                  ? 'text-rose-500'
+                                  : slotOcupado
+                                    ? 'text-amber-500'
+                                    : t.textMuted
                           }`}
                         >
                           {passouHoje
                             ? 'Horário encerrado'
                             : slotAprovado
-                              ? 'Já aprovado'
+                              ? 'Indisponível (Ocupado)'
                               : slotOcupado
                                 ? 'Já solicitado'
                                 : `${slot.turno} · Livre`}

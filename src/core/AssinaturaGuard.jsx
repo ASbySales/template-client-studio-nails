@@ -1,45 +1,57 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
-import { TORRE_STATUS_TOKEN } from './env'
+import { TENANT_ID } from './env'
 import { LOJA_TEMA } from '../config/tema'
 
 const SUPORTE_WHATSAPP = '5583988964507'
+const STATUS_BLOQUEADOS = new Set([
+  'bloqueado',
+  'bloqueada',
+  'suspensa',
+  'suspenso',
+  'cancelada',
+  'cancelado',
+  'inadimplente',
+])
 
-export default function AssinaturaGuard({ children, token = TORRE_STATUS_TOKEN }) {
+export default function AssinaturaGuard({ children, tenantId = TENANT_ID }) {
   const [status, setStatus] = useState({
     bloqueado: false,
     motivo: null,
     falhaValidacao: false,
-    loading: Boolean(token),
+    loading: Boolean(tenantId),
   })
 
   useEffect(() => {
-    if (!token) return undefined
+    if (!tenantId) return undefined
     let ativo = true
 
     async function verificarAssinatura() {
       try {
-        const { data, error } = await supabase
-          .schema('torre')
-          .rpc('consultar_status_loja', { p_token: token })
+        const { data, error } = await supabase.rpc('consultar_status_assinatura_publico', {
+          p_tenant_id: tenantId,
+        })
 
         if (!ativo) return
 
-        if (!error && data) {
-          if (data.encontrado) {
+        if (error) {
+          console.warn('Verificação de assinatura pública indisponível:', error.message)
+        } else {
+          const registro = Array.isArray(data) ? data[0] : data
+          if (registro) {
+            const statusNorm = String(registro.status || '').toLowerCase()
+            const tenantInativo = registro.ativo === false
+            const bloqueado =
+              registro.bloqueado === true || tenantInativo || STATUS_BLOQUEADOS.has(statusNorm)
+
             setStatus({
-              bloqueado: data.bloqueado === true,
-              motivo: data.motivo || null,
+              bloqueado,
+              motivo:
+                registro.motivo ||
+                (tenantInativo
+                  ? 'Este estabelecimento encontra-se temporariamente desativado.'
+                  : null),
               falhaValidacao: false,
-              loading: false,
-            })
-            return
-          }
-          if (data.bloqueado) {
-            setStatus({
-              bloqueado: true,
-              motivo: data.motivo || 'Validação de licença da aplicação não reconhecida.',
-              falhaValidacao: true,
               loading: false,
             })
             return
@@ -63,7 +75,7 @@ export default function AssinaturaGuard({ children, token = TORRE_STATUS_TOKEN }
     return () => {
       ativo = false
     }
-  }, [token])
+  }, [tenantId])
 
   if (status.loading || !status.bloqueado) {
     return children
