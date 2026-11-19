@@ -1,16 +1,36 @@
 import { supabase } from './supabase'
 import { TENANT_ID, WHATSAPP_NUMBER, STORAGE_PREFIX } from './env'
 import {
+  PADRAO_CONFIG_AGENDA,
   calcularTotalCarrinho,
   formatarCodigoAgendamento,
+  formatarDataBr,
   formatarMensagemWhatsApp,
   horarioJaPassouHoje,
   montarPayloadItens,
+  normalizarConfigAgenda,
+  obterConfigDoDia,
   obterDataHojeISO,
   obterHorariosDoDia,
   validarItemCarrinho,
   validarWhatsapp,
 } from './regrasCalculo'
+
+export async function buscarConfigAgenda(tenantId = TENANT_ID) {
+  try {
+    const { data, error } = await supabase.rpc('listar_config_agenda_publico', {
+      p_tenant_id: tenantId,
+    })
+    if (error) throw error
+    if (!data || data.habilitado === false || !Array.isArray(data.semana)) {
+      return { ok: false, config: PADRAO_CONFIG_AGENDA }
+    }
+    return { ok: true, config: normalizarConfigAgenda(data) }
+  } catch (e) {
+    console.warn('Não foi possível consultar grade de horários:', e)
+    return { ok: false, config: PADRAO_CONFIG_AGENDA }
+  }
+}
 
 export async function buscarDatasOcupadas(tenantId = TENANT_ID) {
   try {
@@ -137,6 +157,7 @@ export async function enviarSolicitacaoAgendamento({
   whatsapp,
   dataAgendamento = null,
   horarioAgendamento = null,
+  configAgenda = PADRAO_CONFIG_AGENDA,
   honeypot = '',
   itens = [],
   opcionaisData = [],
@@ -164,9 +185,14 @@ export async function enviarSolicitacaoAgendamento({
     throw new Error('Selecione uma data a partir de hoje.')
   }
 
-  const horariosPermitidos = obterHorariosDoDia(dataLimpa)
-  if (horariosPermitidos.length === 0) {
-    throw new Error('Não realizamos atendimentos aos domingos. Selecione de segunda a sábado.')
+  const cfgDia = obterConfigDoDia(dataLimpa, configAgenda)
+  const horariosPermitidos = obterHorariosDoDia(dataLimpa, configAgenda)
+  if (!cfgDia.ativo || horariosPermitidos.length === 0) {
+    throw new Error(
+      cfgDia.motivo
+        ? `Não realizamos atendimentos em ${formatarDataBr(dataLimpa)} (${cfgDia.motivo}). Escolha outra data.`
+        : 'Não realizamos atendimentos na data selecionada. Escolha outro dia.'
+    )
   }
 
   const horarioLimpo = String(horarioAgendamento || '').trim()

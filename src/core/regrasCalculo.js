@@ -164,14 +164,109 @@ export function montarPayloadItens(itens = []) {
   })
 }
 
-export const HORARIOS_SEMANA = [
-  { id: '07:00 - 09:30', rotulo: '07:00 às 09:30', inicioMin: 7 * 60, turno: 'Manhã' },
-  { id: '09:30 - 12:00', rotulo: '09:30 às 12:00', inicioMin: 9 * 60 + 30, turno: 'Manhã' },
-  { id: '13:00 - 15:30', rotulo: '13:00 às 15:30', inicioMin: 13 * 60, turno: 'Tarde' },
-  { id: '15:30 - 18:00', rotulo: '15:30 às 18:00', inicioMin: 15 * 60 + 30, turno: 'Tarde' },
+export const DIAS_SEMANA_COMPLETOS = [
+  'Domingo',
+  'Segunda-feira',
+  'Terça-feira',
+  'Quarta-feira',
+  'Quinta-feira',
+  'Sexta-feira',
+  'Sábado',
 ]
 
+export const DIAS_SEMANA_CURTOS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+
+export const PADRAO_PERIODOS_SEMANA = [
+  '07:00 - 09:30',
+  '09:30 - 12:00',
+  '13:00 - 15:30',
+  '15:30 - 18:00',
+]
+
+export const PADRAO_PERIODOS_SABADO = PADRAO_PERIODOS_SEMANA.slice(0, 2)
+
+export const PADRAO_CONFIG_SEMANA = [
+  { dia_semana: 0, ativo: false, periodos: [...PADRAO_PERIODOS_SABADO] },
+  { dia_semana: 1, ativo: true, periodos: [...PADRAO_PERIODOS_SEMANA] },
+  { dia_semana: 2, ativo: true, periodos: [...PADRAO_PERIODOS_SEMANA] },
+  { dia_semana: 3, ativo: true, periodos: [...PADRAO_PERIODOS_SEMANA] },
+  { dia_semana: 4, ativo: true, periodos: [...PADRAO_PERIODOS_SEMANA] },
+  { dia_semana: 5, ativo: true, periodos: [...PADRAO_PERIODOS_SEMANA] },
+  { dia_semana: 6, ativo: true, periodos: [...PADRAO_PERIODOS_SABADO] },
+]
+
+export const PADRAO_CONFIG_AGENDA = {
+  semana: PADRAO_CONFIG_SEMANA,
+  datas_especiais: [],
+}
+
+const pad2 = (n) => String(n).padStart(2, '0')
+const fmtHora = (min) => `${pad2(Math.floor(min / 60))}:${pad2(min % 60)}`
+
+export function parsePeriodoMinutos(str) {
+  const m = /^([01]?\d|2[0-3]):([0-5]\d)\s*-\s*([01]?\d|2[0-3]):([0-5]\d)$/.exec(
+    String(str || '').trim()
+  )
+  if (!m) return null
+  const h1 = Number(m[1])
+  const m1 = Number(m[2])
+  const h2 = Number(m[3])
+  const m2 = Number(m[4])
+  const ini = h1 * 60 + m1
+  const fim = h2 * 60 + m2
+  if (ini >= fim) return null
+  const inicioTxt = `${pad2(h1)}:${pad2(m1)}`
+  const fimTxt = `${pad2(h2)}:${pad2(m2)}`
+  return {
+    id: `${inicioTxt} - ${fimTxt}`,
+    rotulo: `${inicioTxt} às ${fimTxt}`,
+    inicioMin: ini,
+    fimMin: fim,
+    ini,
+    fim,
+    turno: ini < 12 * 60 ? 'Manhã' : ini < 18 * 60 ? 'Tarde' : 'Noite',
+  }
+}
+
+export const HORARIOS_SEMANA = PADRAO_PERIODOS_SEMANA.map((txt) => parsePeriodoMinutos(txt))
 export const HORARIOS_SABADO = HORARIOS_SEMANA.slice(0, 2)
+
+export function periodosConflitam(a, b) {
+  if (!a || !b) return false
+  if (String(a).trim() === String(b).trim()) return true
+  const pa = parsePeriodoMinutos(a)
+  const pb = parsePeriodoMinutos(b)
+  if (!pa || !pb) return false
+  return pa.ini < pb.fim && pb.ini < pa.fim
+}
+
+export function normalizarConfigAgenda(raw) {
+  const base = PADRAO_CONFIG_SEMANA.map((d) => ({ ...d, periodos: [...d.periodos] }))
+  if (Array.isArray(raw?.semana)) {
+    raw.semana.forEach((item) => {
+      const dow = Number(item?.dia_semana)
+      if (Number.isInteger(dow) && dow >= 0 && dow <= 6) {
+        base[dow] = {
+          dia_semana: dow,
+          ativo: Boolean(item.ativo),
+          periodos: Array.isArray(item.periodos) ? item.periodos.filter(Boolean) : [],
+        }
+      }
+    })
+  }
+  const especiais = Array.isArray(raw?.datas_especiais)
+    ? raw.datas_especiais
+        .filter((e) => e && e.data)
+        .map((e) => ({
+          data: String(e.data).slice(0, 10),
+          ativo: Boolean(e.ativo),
+          periodos: Array.isArray(e.periodos) ? e.periodos.filter(Boolean) : [],
+          motivo: e.motivo || '',
+        }))
+        .sort((a, b) => a.data.localeCompare(b.data))
+    : []
+  return { semana: base, datas_especiais: especiais }
+}
 
 export function obterDataHojeISO() {
   try {
@@ -196,11 +291,80 @@ export function obterDiaSemanaISO(isoDate) {
   return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12, 0, 0)).getUTCDay()
 }
 
-export function obterHorariosDoDia(isoDate) {
-  const diaSemana = obterDiaSemanaISO(isoDate)
-  if (diaSemana < 0 || diaSemana === 0) return []
-  if (diaSemana === 6) return HORARIOS_SABADO
-  return HORARIOS_SEMANA
+export function obterConfigDoDia(isoDate, configAgenda = PADRAO_CONFIG_AGENDA) {
+  const isoLimpo = String(isoDate || '').slice(0, 10)
+  const esp = (configAgenda?.datas_especiais || []).find((e) => e.data === isoLimpo)
+  if (esp) {
+    return {
+      ativo: Boolean(esp.ativo) && Array.isArray(esp.periodos) && esp.periodos.length > 0,
+      periodos: esp.ativo ? esp.periodos || [] : [],
+      origem: 'especial',
+      motivo: esp.motivo || '',
+    }
+  }
+  const diaSemana = obterDiaSemanaISO(isoLimpo)
+  if (diaSemana < 0) return { ativo: false, periodos: [], origem: 'invalido', motivo: '' }
+  const sem =
+    (configAgenda?.semana || PADRAO_CONFIG_SEMANA).find((d) => Number(d.dia_semana) === diaSemana) ||
+    PADRAO_CONFIG_SEMANA[diaSemana]
+  const lista = sem?.ativo ? sem.periodos || [] : []
+  return {
+    ativo: Boolean(sem?.ativo) && lista.length > 0,
+    periodos: lista,
+    origem: 'semana',
+    motivo: '',
+  }
+}
+
+export function obterHorariosDoDia(isoDate, configAgenda = PADRAO_CONFIG_AGENDA) {
+  const cfg = obterConfigDoDia(isoDate, configAgenda)
+  if (!cfg.ativo) return []
+  return cfg.periodos.map((txt) => parsePeriodoMinutos(txt)).filter(Boolean)
+}
+
+export function formatarResumoSemana(configAgenda = PADRAO_CONFIG_AGENDA) {
+  const ordem = [1, 2, 3, 4, 5, 6, 0]
+  const ativosIdx = []
+  let minIni = Infinity
+  let maxFim = -Infinity
+
+  ordem.forEach((dow, pos) => {
+    const sem = (configAgenda?.semana || PADRAO_CONFIG_SEMANA).find(
+      (d) => Number(d.dia_semana) === dow
+    )
+    const periodos = sem?.ativo ? (sem.periodos || []).map(parsePeriodoMinutos).filter(Boolean) : []
+    if (periodos.length > 0) {
+      ativosIdx.push(pos)
+      periodos.forEach((p) => {
+        if (p.ini < minIni) minIni = p.ini
+        if (p.fim > maxFim) maxFim = p.fim
+      })
+    }
+  })
+
+  if (ativosIdx.length === 0 || !Number.isFinite(minIni) || !Number.isFinite(maxFim)) {
+    return 'Somente com horário agendado'
+  }
+
+  const blocos = []
+  let ini = ativosIdx[0]
+  let ant = ativosIdx[0]
+  for (let i = 1; i <= ativosIdx.length; i += 1) {
+    const cur = ativosIdx[i]
+    if (cur === ant + 1) {
+      ant = cur
+    } else {
+      const labelIni = DIAS_SEMANA_CURTOS[ordem[ini]]
+      const labelFim = DIAS_SEMANA_CURTOS[ordem[ant]]
+      if (ini === ant) blocos.push(labelIni)
+      else if (ant === ini + 1) blocos.push(`${labelIni} e ${labelFim}`)
+      else blocos.push(`${labelIni} a ${labelFim}`)
+      ini = cur
+      ant = cur
+    }
+  }
+
+  return `${blocos.join(', ')} · ${fmtHora(minIni)} às ${fmtHora(maxFim)}`
 }
 
 export function obterMinutosAgoraSP() {

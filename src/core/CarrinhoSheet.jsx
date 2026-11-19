@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   AlertCircle,
   ArrowLeft,
@@ -20,6 +20,7 @@ import { useOverlayBack, useScrollLock } from './hooksUi'
 import { useUI } from './uiContext'
 import {
   LIMITE_SUBSTITUTIVOS,
+  PADRAO_CONFIG_AGENDA,
   aceitaAdicionais,
   calcularPrecoItem,
   calcularTotalCarrinho,
@@ -28,11 +29,13 @@ import {
   formatarMoeda,
   horarioJaPassouHoje,
   mascaraWhatsapp,
+  obterConfigDoDia,
   obterDataHojeISO,
-  obterDiaSemanaISO,
   obterHorariosDoDia,
+  periodosConflitam,
 } from './regrasCalculo'
 import {
+  buscarConfigAgenda,
   buscarDatasOcupadas,
   enviarSolicitacaoAgendamento,
   obterDadosClienteSalvos,
@@ -85,6 +88,7 @@ export default function CarrinhoSheet({
     const [ano, mes] = hoje.split('-').map(Number)
     return new Date(ano, (mes || 1) - 1, 1)
   })
+  const [configAgenda, setConfigAgenda] = useState(PADRAO_CONFIG_AGENDA)
   const [mapaOcupadas, setMapaOcupadas] = useState({})
   const [listaOcupadas, setListaOcupadas] = useState([])
   const [carregandoDatas, setCarregandoDatas] = useState(false)
@@ -94,23 +98,27 @@ export default function CarrinhoSheet({
 
   const hojeISO = obterDataHojeISO()
 
+  const carregarDisponibilidade = useCallback(async () => {
+    setCarregandoDatas(true)
+    try {
+      const [cfgRes, ocupRes] = await Promise.all([
+        buscarConfigAgenda(TENANT_ID),
+        buscarDatasOcupadas(TENANT_ID),
+      ])
+      if (cfgRes?.config) {
+        setConfigAgenda(cfgRes.config)
+      }
+      setMapaOcupadas(ocupRes?.mapa || {})
+      setListaOcupadas(ocupRes?.datas || [])
+    } finally {
+      setCarregandoDatas(false)
+    }
+  }, [])
+
   useEffect(() => {
     if (passo !== 'checkout') return
-    let ativo = true
-    setCarregandoDatas(true)
-    buscarDatasOcupadas(TENANT_ID)
-      .then((res) => {
-        if (!ativo) return
-        setMapaOcupadas(res.mapa || {})
-        setListaOcupadas(res.datas || [])
-      })
-      .finally(() => {
-        if (ativo) setCarregandoDatas(false)
-      })
-    return () => {
-      ativo = false
-    }
-  }, [passo])
+    carregarDisponibilidade()
+  }, [passo, carregarDisponibilidade])
 
   const diasDoMes = useMemo(() => {
     const ano = mesCalendario.getFullYear()
@@ -133,18 +141,42 @@ export default function CarrinhoSheet({
   const podeVoltarMes = mesAtualPrefix > hojeISO.slice(0, 7)
   const datasOcupadasNoMes = listaOcupadas.filter((d) => d.data.startsWith(mesAtualPrefix))
   const infoDiaSelecionado = dataAgendamento ? mapaOcupadas[dataAgendamento] : null
-  const horariosDiaSelecionado = useMemo(
-    () => (dataAgendamento ? obterHorariosDoDia(dataAgendamento) : []),
-    [dataAgendamento]
+  const cfgDiaSelecionado = useMemo(
+    () =>
+      dataAgendamento
+        ? obterConfigDoDia(dataAgendamento, configAgenda)
+        : { ativo: false, periodos: [], origem: 'vazio', motivo: '' },
+    [dataAgendamento, configAgenda]
   )
-  const isSabadoSelecionado = dataAgendamento ? obterDiaSemanaISO(dataAgendamento) === 6 : false
+  const horariosDiaSelecionado = useMemo(
+    () => (dataAgendamento ? obterHorariosDoDia(dataAgendamento, configAgenda) : []),
+    [dataAgendamento, configAgenda]
+  )
 
   useEffect(() => {
-    if (!horarioAgendamento || !infoDiaSelecionado?.horariosAprovados?.includes(horarioAgendamento)) {
+    if (!dataAgendamento) return
+    if (!cfgDiaSelecionado.ativo || horariosDiaSelecionado.length === 0) {
+      setDataAgendamento('')
+      setHorarioAgendamento('')
       return
     }
-    setHorarioAgendamento('')
-  }, [horarioAgendamento, infoDiaSelecionado])
+    if (!horarioAgendamento) return
+    const aindaNaGrade = horariosDiaSelecionado.some((h) => h.id === horarioAgendamento)
+    const temConflitoAprovado = Boolean(
+      infoDiaSelecionado?.horariosAprovados?.some((ap) =>
+        periodosConflitam(ap, horarioAgendamento)
+      )
+    )
+    if (!aindaNaGrade || temConflitoAprovado) {
+      setHorarioAgendamento('')
+    }
+  }, [
+    dataAgendamento,
+    cfgDiaSelecionado,
+    horariosDiaSelecionado,
+    horarioAgendamento,
+    infoDiaSelecionado,
+  ])
 
   useScrollLock(true)
   useOverlayBack(true, () => {
@@ -226,7 +258,9 @@ export default function CarrinhoSheet({
     if (
       dataAgendamento &&
       horarioAgendamento &&
-      infoDiaSelecionado?.horariosAprovados?.includes(horarioAgendamento)
+      infoDiaSelecionado?.horariosAprovados?.some((ap) =>
+        periodosConflitam(ap, horarioAgendamento)
+      )
     ) {
       setErroEnvio('Este horário já foi preenchido. Por favor, escolha outro período.')
       return
@@ -243,6 +277,7 @@ export default function CarrinhoSheet({
         whatsapp,
         dataAgendamento,
         horarioAgendamento,
+        configAgenda,
         honeypot,
         itens,
         opcionaisData,
@@ -262,7 +297,15 @@ export default function CarrinhoSheet({
       }
     } catch (error) {
       console.error('Erro ao registrar solicitação:', error)
-      setErroEnvio(error.message || 'Não foi possível enviar a solicitação. Tente novamente.')
+      const msg = error?.message || 'Não foi possível enviar a solicitação. Tente novamente.'
+      setErroEnvio(msg)
+      if (
+        error?.code === 'P0001' ||
+        error?.code === '22023' ||
+        /período|horário|atendimento|preenchido|data/i.test(msg)
+      ) {
+        carregarDisponibilidade()
+      }
     } finally {
       setEnviando(false)
     }
@@ -540,7 +583,7 @@ export default function CarrinhoSheet({
           />
 
           <p className={`text-xs leading-relaxed ${t.textMuted}`}>
-            Escolha a data e o horário desejados (até 2h30 por período) e confirme no WhatsApp:
+            Escolha a data e o horário desejados e confirme no WhatsApp:
           </p>
 
           <div className={`rounded-2xl p-3 flex flex-col gap-2.5 ${t.cardItemBg}`}>
@@ -592,7 +635,7 @@ export default function CarrinhoSheet({
                   Livre
                 </span>
                 <span className={`inline-flex items-center gap-1 ${t.textMuted}`}>
-                  Dom fechado
+                  Dias cinzas fechados
                 </span>
               </div>
               {carregandoDatas && (
@@ -609,16 +652,16 @@ export default function CarrinhoSheet({
 
               {diasDoMes.map((cel, i) => {
                 if (!cel) return <div key={`v-${i}`} />
-                const diaSem = obterDiaSemanaISO(cel.iso)
-                const isDomingo = diaSem === 0
-                const isSabado = diaSem === 6
+                const cfgCel = obterConfigDoDia(cel.iso, configAgenda)
+                const slotsCel = obterHorariosDoDia(cel.iso, configAgenda)
                 const passado = cel.iso < hojeISO
-                const desabilitado = passado || isDomingo
-                const maxVagasDia = isSabado ? 2 : 4
+                const semAtendimento = !cfgCel.ativo || slotsCel.length === 0
+                const desabilitado = passado || semAtendimento
+                const maxVagasDia = slotsCel.length
                 const infoOcup = mapaOcupadas[cel.iso]
                 const totalDia = infoOcup?.total || 0
                 const ocupado = totalDia > 0
-                const lotado = totalDia >= maxVagasDia
+                const lotado = maxVagasDia > 0 && totalDia >= maxVagasDia
                 const selecionado = dataAgendamento === cel.iso
 
                 return (
@@ -629,13 +672,15 @@ export default function CarrinhoSheet({
                     onClick={() => {
                       setDataAgendamento(cel.iso)
                       const infoDestino = mapaOcupadas[cel.iso]
-                      const permitidos = obterHorariosDoDia(cel.iso)
+                      const permitidos = obterHorariosDoDia(cel.iso, configAgenda)
                       setHorarioAgendamento((atual) =>
                         permitidos.some(
                           (h) =>
                             h.id === atual &&
                             !horarioJaPassouHoje(cel.iso, h.inicioMin) &&
-                            !infoDestino?.horariosAprovados?.includes(h.id)
+                            !infoDestino?.horariosAprovados?.some((ap) =>
+                              periodosConflitam(ap, h.id)
+                            )
                         )
                           ? atual
                           : ''
@@ -643,13 +688,15 @@ export default function CarrinhoSheet({
                       setErroEnvio('')
                     }}
                     title={
-                      isDomingo
-                        ? 'Domingo: sem atendimento'
-                        : passado
-                          ? 'Data passada'
+                      passado
+                        ? 'Data passada'
+                        : semAtendimento
+                          ? cfgCel.motivo
+                            ? `Fechado (${cfgCel.motivo})`
+                            : 'Sem atendimento neste dia'
                           : ocupado
                             ? `${formatarDataBr(cel.iso)}: ${totalDia}/${maxVagasDia} horário(s) já solicitados`
-                            : `${formatarDataBr(cel.iso)}: ${maxVagasDia} horários livres`
+                            : `${formatarDataBr(cel.iso)}: ${maxVagasDia} horário(s) livres`
                     }
                     style={
                       selecionado
@@ -701,7 +748,9 @@ export default function CarrinhoSheet({
                     </span>
                   </div>
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${t.pillBadge}`}>
-                    {isSabadoSelecionado ? 'Sábado · 2 manhã' : 'Seg a Sex · até 2h30'}
+                    {cfgDiaSelecionado.origem === 'especial' && cfgDiaSelecionado.motivo
+                      ? cfgDiaSelecionado.motivo
+                      : `${horariosDiaSelecionado.length} horário(s)`}
                   </span>
                 </div>
 
@@ -709,10 +758,17 @@ export default function CarrinhoSheet({
                   {horariosDiaSelecionado.map((slot) => {
                     const passouHoje = horarioJaPassouHoje(dataAgendamento, slot.inicioMin)
                     const slotAprovado = Boolean(
-                      infoDiaSelecionado?.horariosAprovados?.includes(slot.id)
+                      infoDiaSelecionado?.horariosAprovados?.some((ap) =>
+                        periodosConflitam(ap, slot.id)
+                      )
                     )
                     const slotOcupado =
-                      slotAprovado || infoDiaSelecionado?.horariosOcupados?.includes(slot.id)
+                      slotAprovado ||
+                      Boolean(
+                        infoDiaSelecionado?.horariosOcupados?.some((oc) =>
+                          periodosConflitam(oc, slot.id)
+                        )
+                      )
                     const slotBloqueado = passouHoje || slotAprovado
                     const slotSelecionado = !slotBloqueado && horarioAgendamento === slot.id
 
@@ -788,11 +844,13 @@ export default function CarrinhoSheet({
                     <span>
                       <strong>{formatarDataBr(dataAgendamento)}</strong> já possui{' '}
                       <strong>
-                        {infoDiaSelecionado.total} de {isSabadoSelecionado ? 2 : 4} períodos
+                        {infoDiaSelecionado.total} de {horariosDiaSelecionado.length} período(s)
                       </strong>{' '}
                       com solicitação{infoDiaSelecionado.possuiAprovado ? ' (incluindo horário aprovado)' : ''}.
                       {horarioAgendamento &&
-                      infoDiaSelecionado.horariosOcupados?.includes(horarioAgendamento)
+                      infoDiaSelecionado.horariosOcupados?.some((oc) =>
+                        periodosConflitam(oc, horarioAgendamento)
+                      )
                         ? ` O período ${horarioAgendamento} já tem solicitação — confirmaremos no WhatsApp.`
                         : ' Alinharemos a disponibilidade exata pelo WhatsApp.'}
                     </span>
@@ -808,7 +866,7 @@ export default function CarrinhoSheet({
                     <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-500" />
                     <span>
                       <strong>{formatarDataBr(dataAgendamento)}</strong> está livre em todos os{' '}
-                      {isSabadoSelecionado ? '2 horários da manhã' : '4 horários do dia'}
+                      {horariosDiaSelecionado.length} horário(s) do dia
                       {horarioAgendamento ? ` (${horarioAgendamento} selecionado).` : ' — escolha seu horário acima.'}
                     </span>
                   </div>

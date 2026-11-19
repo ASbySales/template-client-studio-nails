@@ -8,6 +8,20 @@ export {
 } from './env'
 export {
   LIMITE_SUBSTITUTIVOS,
+  DIAS_SEMANA_COMPLETOS,
+  DIAS_SEMANA_CURTOS,
+  PADRAO_PERIODOS_SEMANA,
+  PADRAO_PERIODOS_SABADO,
+  PADRAO_CONFIG_SEMANA,
+  PADRAO_CONFIG_AGENDA,
+  parsePeriodoMinutos,
+  periodosConflitam,
+  normalizarConfigAgenda,
+  obterDataHojeISO,
+  obterDiaSemanaISO,
+  obterConfigDoDia,
+  obterHorariosDoDia,
+  formatarResumoSemana,
   parseValorNumerico,
   formatarMoeda,
   ordenarPorOrdem,
@@ -27,6 +41,8 @@ export {
 } from './regrasCalculo'
 export { carregarCatalogoTenant } from './catalogoService'
 export {
+  buscarConfigAgenda,
+  buscarDatasOcupadas,
   carregarCarrinhoLocal,
   salvarCarrinhoLocal,
   obterDadosClienteSalvos,
